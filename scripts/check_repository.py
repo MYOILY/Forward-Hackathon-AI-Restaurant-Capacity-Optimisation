@@ -10,6 +10,8 @@ from urllib.parse import unquote, urlsplit
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE_DIRS = ("processor", "service", "evaluator", "shared", "web", "tests", "scripts")
+DEMO_FILES = {"README.md", "scene.mp4", "clean-frame.jpg"}
+DEMO_FILE_LIMIT = 25 * 1024 * 1024
 
 
 def check_repository(root: Path = ROOT) -> list[str]:
@@ -76,6 +78,19 @@ def check_repository(root: Path = ROOT) -> list[str]:
             errors.append(
                 f"examples/{name} must contain only .gitkeep for a clean submission"
             )
+    demo = root / "examples" / "demo"
+    if not demo.is_dir() or {path.name for path in demo.iterdir()} != DEMO_FILES:
+        errors.append(
+            "examples/demo must contain exactly " + ", ".join(sorted(DEMO_FILES))
+        )
+    else:
+        for path in sorted(demo.iterdir()):
+            if path.stat().st_size > DEMO_FILE_LIMIT:
+                errors.append(
+                    f"examples/demo/{path.name} exceeds the "
+                    f"{DEMO_FILE_LIMIT // 1024 // 1024} MiB distribution limit; "
+                    "ship a transcoded clip, not a master recording"
+                )
     public = root / "web" / "public"
     if public.exists() and any(public.iterdir()):
         errors.append("web/public must not contain sample bundles or recordings")
@@ -88,4 +103,7 @@ if __name__ == "__main__":
         print(issue, file=sys.stderr)
     if issues:
         raise SystemExit(1)
-    print("Current documentation links, source boundaries and empty examples verified.")
+    print(
+        "Current documentation links, source boundaries, demo assets and empty "
+        "examples verified."
+    )

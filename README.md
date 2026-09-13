@@ -29,6 +29,11 @@ without detector weights when **Draw tables manually** is selected; automatic
 proposals and analysis need the verified model. Detection-only monitoring skips
 tabletop assessment and cannot establish automatic readiness.
 
+A [demo clip](examples/demo/) is included so the flow can be run without your
+own footage: a 7.4 MiB fixed-camera recording of a shared study space with a
+matching clean reference. It demonstrates that the pipeline runs; it is not
+restaurant footage and carries no labels.
+
 The empty [video folder](examples/videos/) and [mapping folder](examples/mappings/)
 are for files you provide. Select their files through setup. They are not
 automatically imported, approved, or served by the application.

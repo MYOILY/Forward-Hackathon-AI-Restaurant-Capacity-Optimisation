@@ -7,8 +7,10 @@ is shown as an error; it does not open sample footage.
 
 ## Prepare your files
 
-Place your own recordings in [examples/videos](../examples/videos/) and floor
-plans in [examples/mappings](../examples/mappings/), if helpful. Use the setup
+To try the flow immediately, use the [demo clip](../examples/demo/) and its
+clean reference; skip to the next section. Otherwise place your own recordings
+in [examples/videos](../examples/videos/) and floor plans in
+[examples/mappings](../examples/mappings/), if helpful. Use the setup
 screen to select them. Files in those folders are not automatically loaded.
 A floor-plan image describes table positions; it is not a clean-table reference.
 

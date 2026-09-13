@@ -17,7 +17,8 @@ npx playwright install chromium
 npm run test:browser
 ```
 
-The CI workflow runs these software layers on Linux and builds the CPU container.
+These software layers are run locally on macOS ARM. No CI workflow is
+committed to this repository, so no automated Linux run exists.
 It does not claim a real camera, real restaurant recording, or AWS benchmark.
 Browser fixtures exercise the actual setup/playback interfaces with controlled
 service replies; they do not put sample routes or default media in the application.
@@ -132,15 +133,16 @@ EC2 capacity. The proxy used temporary local TLS certificates with verification
 enabled; no public domain or system trust store was changed.
 
 The Linux `amd64` container build and container-runtime checks remain unverified:
-the available Docker client could not connect to a working engine. CI includes
-the image build, but that CI run has not been observed. Public certificate
+the available Docker client could not connect to a working engine, and no CI
+workflow is committed to run the build elsewhere. Public certificate
 issuance, EC2 performance, physical cameras and independently labelled restaurant
 footage remain deployment or field-validation work.
 
 ## Further example material required
 
-This repository ships no footage, mappings or labels by design, so every result
-above rests on synthetic fixtures and self-recorded clips. Those establish that
+This repository ships one unlabelled [demo clip](../examples/demo/) and no
+mappings or labels, so every result above rests on synthetic fixtures and
+self-recorded material. Those establish that
 the pipeline executes; they do not establish restaurant accuracy. The following
 example material is still required before any accuracy claim is made:
 
