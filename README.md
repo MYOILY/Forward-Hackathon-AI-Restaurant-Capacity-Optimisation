@@ -1,6 +1,6 @@
-# TableWatch
+# TurnTable
 
-TableWatch turns a fixed-camera restaurant recording or browser camera into a
+TurnTable turns a fixed-camera restaurant recording or browser camera into a
 reviewed table map. CPU person tracking and reference-image comparison help staff
 see which tables are occupied, need a reset, or have enough evidence to be ready.
 Uncertain evidence remains visible, and staff can override the displayed status.
@@ -24,7 +24,7 @@ npm ci
 npm run dev:full
 ```
 
-Open [TableWatch locally](http://127.0.0.1:5173). Manual video drafting works
+Open [TurnTable locally](http://127.0.0.1:5173). Manual video drafting works
 without detector weights when **Draw tables manually** is selected; automatic
 proposals and analysis need the verified model. Detection-only monitoring skips
 tabletop assessment and cannot establish automatic readiness.
@@ -75,7 +75,7 @@ npm run test:browser
 See [Validation](docs/VALIDATION.md) for integration checks and their prerequisites.
 Tests use small, identified fixtures separate from user examples.
 
-TableWatch is a fixed-camera prototype. A change from an approved setup is not
+TurnTable is a fixed-camera prototype. A change from an approved setup is not
 proof of dirt or sanitation. Software tests and generated image fixtures do not
 establish restaurant accuracy; that requires independent labels and a separate
 held-out real recording. [Further example material
