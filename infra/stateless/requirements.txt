@@ -1,0 +1,12 @@
+# Core runtime versions and their shared dependencies are constrained by
+# requirements.lock.txt. Keep these in sync with the checkpoint build contract.
+numpy==2.4.6
+opencv-python==4.14.0.94
+onnxruntime==1.30.0
+pillow==12.3.0
+jsonschema==4.26.0
+psutil==7.2.2
+trackers==2.6.0
+supervision==0.30.2
+# AWS runtime interface client for the Debian Python 3.11 container.
+awslambdaric==4.0.3

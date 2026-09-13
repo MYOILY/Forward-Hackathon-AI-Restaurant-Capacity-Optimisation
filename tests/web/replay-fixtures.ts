@@ -80,10 +80,10 @@ export function replayFixture(
     },
   );
   return {
-    schema_version: 2,
-    policy: "automatic_v2",
+    policy: "automatic",
     provenance: "synthetic_fixture",
     video: {
+      source_kind: "processed_file",
       file: "video.mp4",
       sha256: "a".repeat(64),
       width: 640,

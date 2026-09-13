@@ -1,12 +1,25 @@
 # Deploy on an EC2 CPU instance
 
-The default deployment is one Linux `amd64` EC2 instance running Docker Compose:
+This is the deployment for continuous real-time camera computation and a
+persistent shared workspace. The hosted recording demo uses
+[Lambda](STATELESS_DEPLOYMENT.md#why-the-demo-uses-lambda) so it does not depend on
+keeping this EC2 instance running; its compact model processes frame batches on
+demand. Live camera monitoring requires the EC2 service in this project's hosted
+setup.
+
+The EC2 deployment uses one Linux `amd64` instance running Docker Compose:
 Caddy provides password-protected HTTPS and proxies to one private application
 container. This is a single shared workspace. Everyone with the credentials can
 access its saved sources; there is no per-user or per-restaurant isolation.
 
-No AWS resources are created by this repository. Configure the host and DNS
-before attempting certificate issuance.
+You provision the EC2 instance and DNS yourself; Compose starts the application
+on that host. The separate stateless deployment helper can create AWS resources
+when run with `--execute`. For a first local run, start with the
+[README](../README.md#start-locally).
+
+Follow **Prepare the host → Configure HTTPS and access → Install the CPU model
+and start → Check the deployment**. Run commands from the repository root on
+the instance. The storage and recovery sections are for ongoing operation.
 
 ## Prepare the host
 
@@ -30,16 +43,20 @@ Uvicorn worker; active jobs and live sessions are coordinated within that proces
 ## Configure HTTPS and access
 
 ```sh
-cp .env.example .env
+cp -n .env.example .env
 docker run --rm -it caddy:2.10.2-alpine caddy hash-password
 ```
 
-Enter a password at the prompt. Set `DOMAIN` to your real public DNS name without
+The copy command preserves an existing `.env`. Open `.env` in your text editor.
+The [included template](../.env.example) lists every required setting.
+Enter a password at the Caddy prompt. Set `DOMAIN` to your real public DNS name without
 a scheme, path or port; choose `BASIC_AUTH_USER`; place the generated bcrypt hash
 in `BASIC_AUTH_HASH`. Keep the hash in single quotes in `.env` so its dollar signs
 are preserved. Do not use the example placeholders or commit `.env`.
 
-`TABLEWATCH_MODEL_HOST_DIR` defaults to `./models`. Public Compose derives the
+Keep `TABLEWATCH_MODEL_HOST_DIR=./models` for the commands below. If you use
+another directory, change the download destination, Docker bind mount and file
+permissions below to use that same directory. Public Compose derives the
 exact allowed HTTPS origin from `DOMAIN`. It requires all public access settings;
 the container preflight also rejects placeholders or malformed credentials.
 
@@ -58,32 +75,59 @@ If using the native environment from the README, download the model with:
 .venv/bin/python -m processor download-model --model tiny --model-dir models
 ```
 
-For a Docker-only host, build first and download through an isolated container:
+Then run the following sequence to build and start the deployment. It also works
+on a Docker-only host: the download command reuses an existing verified model if
+you installed it natively. Run each command in order and stop if any command fails:
 
 ```sh
+python3 scripts/validate_deployment.py
 mkdir -p models
 docker compose build tablewatch
 docker run --rm --user "$(id -u):$(id -g)" -v "$PWD/models:/models" tablewatch-cpu:local python -m processor download-model --model tiny --model-dir /models
-python3 scripts/validate_deployment.py
-docker compose up -d --build
+chmod -R a+rX models
+docker compose up -d
 docker compose ps
 ```
 
-The downloader verifies the pinned official model bytes. Ensure the model
-directory is traversable and its files readable by container UID 10001. The
+The downloader verifies the pinned official model bytes. Its downloaded file can
+be readable only by its owner; `chmod` makes this model directory and its public
+model files readable by application container UID 10001. Apply that permission
+step even if you downloaded the model using the native environment. The
 running application mounts models read-only. Tiny is needed for both person and
 surface checks; Nano/S are optional evaluation choices.
 
-Open your HTTPS domain and authenticate. `GET /api/live` checks liveness;
+## Check the deployment
+
+Wait for `docker compose ps` to show the application as healthy, then open your
+HTTPS domain. You should be prompted for the username and password you chose.
+After signing in, you should see the recording/camera setup screen.
+
+`GET /api/live` checks liveness;
 `GET /api/ready` returns 200 when the verified detector and surface models are
 available and 503 otherwise. `/api/health` supplies detailed capability state to
 the UI. Missing models do not prevent manual video drafting. The container health
-check uses liveness so absent models do not block access to setup.
+check uses liveness so absent models do not block access to setup. In the signed-in
+browser, open `https://YOUR_DOMAIN/api/ready` (replace `YOUR_DOMAIN` with your
+domain) and confirm that it reports `"ready": true`. A healthy container alone
+does not prove model readiness.
+
+Complete the [demo walkthrough](SETUP.md#try-the-demo) to check upload, review,
+analysis and playback. Select the demo files from the computer running your
+browser; they do not need to be placed in a server media folder.
 
 Before sharing credentials, verify unauthorized requests cannot read the UI,
 health details, assets or API; then test upload, camera permission, WSS monitoring
 and video seeking while authenticated. Run the [validation checks](VALIDATION.md)
 against this host before making deployment performance claims.
+
+### Troubleshooting
+
+| Symptom | Next check |
+| --- | --- |
+| Configuration rejected | Replace every placeholder in `.env`, keep the bcrypt hash single-quoted, and rerun `python3 scripts/validate_deployment.py`. |
+| HTTPS is unavailable | Confirm DNS points to this instance, inbound TCP 80/443 is allowed, and inspect `docker compose logs --tail=100 caddy`. |
+| Readiness returns 503 | Open `/api/health` after signing in. Check that `models/yolox_tiny.onnx` exists and repeat the model-directory permission step. Restart `tablewatch` after correcting it. |
+| The browser cannot access its camera | Allow camera permission on the HTTPS site and confirm that another application is not holding the device. |
 
 ## Storage, logs and restart
 
@@ -113,15 +157,25 @@ completed recording before directing the domain to it.
 For an update, retain the previous image tag/digest and back up data first. Build
 and validate the new image, then run `docker compose up -d`. To roll back, restore
 the known working code/image and corresponding data backup if stored formats
-changed. Do not rewrite schema identifiers or old evidence to force compatibility.
+changed. Reprocess unsupported saved recordings through reviewed setup; do not
+rewrite their evidence to make them appear current.
 
 ## Local container alternative
 
+This path needs a running Docker engine and Compose, but no domain or `.env`.
+From the repository root, first build the image and install the model:
+
 ```sh
-docker compose -f compose.local.yaml up -d --build
+mkdir -p models
+docker compose -f compose.local.yaml build tablewatch
+docker run --rm --user "$(id -u):$(id -g)" -v "$PWD/models:/models" tablewatch-cpu:local python -m processor download-model --model tiny --model-dir /models
+chmod -R a+rX models
+docker compose -f compose.local.yaml up -d
 ```
 
 Open [localhost](http://127.0.0.1:8000). This configuration has no public proxy and
 binds only loopback. It uses a separate Compose project/data volume from public
 deployment. Model-free manual drafting is supported; install the verified model
-before automatic processing. For native development use [the README](../README.md).
+before automatic processing. Stop this instance with
+`docker compose -f compose.local.yaml down`; omit `-v` to retain saved sources.
+For native development use [the README](../README.md).

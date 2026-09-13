@@ -321,7 +321,6 @@ def main(argv=None) -> int:
                 "provenance": labels["provenance"],
                 "video_sha256": bundle["video"]["sha256"],
                 "labels_sha256": sha256_file(label_path),
-                "schema_version": bundle["schema_version"],
                 "policy": bundle["policy"],
             }
             report["clips"][role] = clip
@@ -348,10 +347,6 @@ def main(argv=None) -> int:
         if len(datasets) == 2:
             if datasets[0][2]["video"]["sha256"] == datasets[1][2]["video"]["sha256"]:
                 raise ValueError("Held-out recording must be a different source video")
-            if datasets[0][2]["schema_version"] != datasets[1][2]["schema_version"]:
-                raise ValueError(
-                    "Main and held-out recordings must use the same policy"
-                )
         if args.skip_tests:
             report["test_layers"] = [
                 {"name": name, "status": "not_run", "reason": "--skip-tests requested"}

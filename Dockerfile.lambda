@@ -1,0 +1,26 @@
+# Build with --platform linux/amd64 --provenance=false. The slim Debian base
+# supports the modern manylinux wheels in the project's Python 3.11 lockfile.
+ARG PYTHON_IMAGE=python:3.11-slim-bookworm
+FROM ${PYTHON_IMAGE}
+WORKDIR /var/task
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 \
+    TABLEWATCH_MODEL_DIR=/var/task/models TABLEWATCH_INTRA_THREADS=4 \
+    OMP_NUM_THREADS=4 OPENBLAS_NUM_THREADS=1 MPLCONFIGDIR=/tmp/matplotlib
+# OpenCV's pinned non-headless package is required by trackers. No video
+# transcoder, Node runtime, HTTP server, or model download runs at invocation.
+RUN apt-get update && apt-get install -y --no-install-recommends libgl1 libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
+COPY requirements.lock.txt ./
+COPY infra/stateless/requirements.txt ./lambda-requirements.txt
+RUN pip install --no-cache-dir --only-binary=:all: -c requirements.lock.txt -r lambda-requirements.txt \
+    && pip check && pip freeze > /var/task/runtime-packages.txt
+COPY processor ./processor
+COPY service ./service
+COPY shared ./shared
+RUN python -c "from processor.models import download_model; download_model('tiny', '/var/task/models')" \
+    && python -c "from processor.models import verify_model; verify_model('/var/task/models/yolox_tiny.onnx', 'tiny')" \
+    && chmod -R a+rX /var/task
+ARG BUILD_ID=development
+ENV TABLEWATCH_BUILD_ID=${BUILD_ID}
+ENTRYPOINT ["/usr/local/bin/python", "-m", "awslambdaric"]
+CMD ["service.stateless.lambda_handler"]

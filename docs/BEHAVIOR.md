@@ -1,5 +1,8 @@
 # Table status and evidence
 
+For where these states appear and how to use the controls, see the
+[dashboard usage guide](USAGE.md#8-use-the-dashboard).
+
 TurnTable keeps person occupancy and tabletop evidence separate, then derives a
 service colour. All automatic tables start **Grey · Verifying**. An approved
 reference photo alone does not make a table green.
@@ -84,8 +87,11 @@ until another colour, **Auto**, or session reset. The underlying evidence remain
 visible, and a forced green is not measured as successful automatic readiness.
 
 Disabling monitoring leaves a table selectable but excludes it from active
-counts and new surface work. Re-enabling requires fresh usable evidence. Browser
-monitoring preferences are scoped to the source and reviewed geometry.
+counts and new surface work. Live monitoring requires fresh usable evidence when
+re-enabled. Recorded playback instead recalculates the status from the recording's
+existing evidence at the selected timestamp; toggling clears that table's staff
+actions from the current playback session. Browser monitoring preferences are
+scoped to the source and reviewed geometry.
 
 The displayed comparison percentage belongs to its measured capture. Current
 status also depends on freshness, occupancy and confirmation. A difference from

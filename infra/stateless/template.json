@@ -1,0 +1,91 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Transform": "AWS::Serverless-2016-10-31",
+  "Description": "TurnTable: private static assets behind CloudFront and a public stateless frame inference Lambda. No media storage or job database.",
+  "Parameters": {
+    "ImageUri": {"Type": "String", "AllowedPattern": "[0-9]{12}\\.dkr\\.ecr\\.[a-z0-9-]+\\.amazonaws\\.com/[a-z0-9/_-]+@sha256:[a-f0-9]{64}", "Description": "Immutable same-region ECR image digest"},
+    "BuildId": {"Type": "String", "MinLength": 1, "MaxLength": 128, "AllowedPattern": "[A-Za-z0-9_.-]+"},
+    "ConcurrencyMode": {"Type": "String", "Default": "reserved", "AllowedValues": ["reserved", "unreserved"], "Description": "reserved caps this function at 10; unreserved shares the regional pool without a function-specific cap"},
+    "MemorySize": {"Type": "Number", "Default": 3008, "MinValue": 3008, "MaxValue": 10240, "Description": "Lambda memory in MB; 3008 fits the initial account limit. Larger allocations require account support."},
+    "InferenceThreads": {"Type": "Number", "Default": 2, "AllowedValues": [1, 2, 4], "Description": "ONNX and OpenMP threads; start with 2 at 3008 MB and benchmark before changing."}
+  },
+  "Conditions": {
+    "ReserveConcurrency": {"Fn::Equals": [{"Ref": "ConcurrencyMode"}, "reserved"]}
+  },
+  "Resources": {
+    "StaticBucket": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {
+        "PublicAccessBlockConfiguration": {"BlockPublicAcls": true, "BlockPublicPolicy": true, "IgnorePublicAcls": true, "RestrictPublicBuckets": true},
+        "OwnershipControls": {"Rules": [{"ObjectOwnership": "BucketOwnerEnforced"}]},
+        "BucketEncryption": {"ServerSideEncryptionConfiguration": [{"ServerSideEncryptionByDefault": {"SSEAlgorithm": "AES256"}}]}
+      }
+    },
+    "OriginAccess": {
+      "Type": "AWS::CloudFront::OriginAccessControl",
+      "Properties": {"OriginAccessControlConfig": {"Name": {"Fn::Sub": "${AWS::StackName}-static"}, "OriginAccessControlOriginType": "s3", "SigningBehavior": "always", "SigningProtocol": "sigv4"}}
+    },
+    "StaticCache": {
+      "Type": "AWS::CloudFront::CachePolicy",
+      "Properties": {"CachePolicyConfig": {
+        "Name": {"Fn::Sub": "${AWS::StackName}-static"}, "MinTTL": 0, "DefaultTTL": 0, "MaxTTL": 31536000,
+        "ParametersInCacheKeyAndForwardedToOrigin": {"EnableAcceptEncodingGzip": true, "EnableAcceptEncodingBrotli": true, "CookiesConfig": {"CookieBehavior": "none"}, "HeadersConfig": {"HeaderBehavior": "none"}, "QueryStringsConfig": {"QueryStringBehavior": "none"}}
+      }}
+    },
+    "Distribution": {
+      "Type": "AWS::CloudFront::Distribution",
+      "Properties": {"DistributionConfig": {
+        "Enabled": true, "DefaultRootObject": "index.html", "HttpVersion": "http2and3", "IPV6Enabled": true, "PriceClass": "PriceClass_100",
+        "Origins": [{"Id": "static", "DomainName": {"Fn::GetAtt": ["StaticBucket", "RegionalDomainName"]}, "OriginAccessControlId": {"Ref": "OriginAccess"}, "S3OriginConfig": {"OriginAccessIdentity": ""}}],
+        "DefaultCacheBehavior": {"TargetOriginId": "static", "ViewerProtocolPolicy": "redirect-to-https", "AllowedMethods": ["GET", "HEAD"], "CachedMethods": ["GET", "HEAD"], "Compress": true, "CachePolicyId": {"Ref": "StaticCache"}},
+        "ViewerCertificate": {"CloudFrontDefaultCertificate": true},
+        "CustomErrorResponses": [{"ErrorCode": 403, "ResponseCode": 200, "ResponsePagePath": "/index.html", "ErrorCachingMinTTL": 0}, {"ErrorCode": 404, "ResponseCode": 200, "ResponsePagePath": "/index.html", "ErrorCachingMinTTL": 0}]
+      }}
+    },
+    "StaticPolicy": {
+      "Type": "AWS::S3::BucketPolicy",
+      "Properties": {"Bucket": {"Ref": "StaticBucket"}, "PolicyDocument": {"Version": "2012-10-17", "Statement": [
+        {"Sid": "CloudFrontReadOnly", "Effect": "Allow", "Principal": {"Service": "cloudfront.amazonaws.com"}, "Action": "s3:GetObject", "Resource": {"Fn::Sub": "${StaticBucket.Arn}/*"}, "Condition": {"StringEquals": {"AWS:SourceArn": {"Fn::Sub": "arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${Distribution}"}}}},
+        {"Sid": "TLSOnly", "Effect": "Deny", "Principal": "*", "Action": "s3:*", "Resource": [{"Fn::GetAtt": ["StaticBucket", "Arn"]}, {"Fn::Sub": "${StaticBucket.Arn}/*"}], "Condition": {"Bool": {"aws:SecureTransport": "false"}}}
+      ]}}
+    },
+    "FunctionLogs": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {"LogGroupName": {"Fn::Sub": "/aws/lambda/${AWS::StackName}-frames"}, "RetentionInDays": 7}
+    },
+    "FunctionRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Principal": {"Service": "lambda.amazonaws.com"}, "Action": "sts:AssumeRole"}]},
+        "Policies": [{"PolicyName": "FunctionLogsOnly", "PolicyDocument": {"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Action": ["logs:CreateLogStream", "logs:PutLogEvents"], "Resource": {"Fn::GetAtt": ["FunctionLogs", "Arn"]}}]}}]
+      }
+    },
+    "FrameFunction": {
+      "Type": "AWS::Serverless::Function",
+      "Properties": {
+        "FunctionName": {"Fn::Sub": "${AWS::StackName}-frames"}, "PackageType": "Image", "Architectures": ["x86_64"],
+        "ImageUri": {"Ref": "ImageUri"}, "ImageConfig": {"Command": ["service.stateless.lambda_handler"]},
+        "Role": {"Fn::GetAtt": ["FunctionRole", "Arn"]}, "MemorySize": {"Ref": "MemorySize"}, "Timeout": 60, "ReservedConcurrentExecutions": {"Fn::If": ["ReserveConcurrency", 10, {"Ref": "AWS::NoValue"}]},
+        "EphemeralStorage": {"Size": 512}, "Environment": {"Variables": {"TABLEWATCH_MODEL_DIR": "/var/task/models", "TABLEWATCH_BUILD_ID": {"Ref": "BuildId"}, "TABLEWATCH_INTRA_THREADS": {"Ref": "InferenceThreads"}, "OMP_NUM_THREADS": {"Ref": "InferenceThreads"}, "OPENBLAS_NUM_THREADS": "1", "MPLCONFIGDIR": "/tmp/matplotlib"}}
+      }
+    },
+    "FunctionUrl": {
+      "Type": "AWS::Lambda::Url",
+      "Properties": {"TargetFunctionArn": {"Ref": "FrameFunction"}, "AuthType": "NONE", "InvokeMode": "BUFFERED", "Cors": {"AllowOrigins": [{"Fn::Sub": "https://${Distribution.DomainName}"}], "AllowMethods": ["GET", "POST"], "AllowHeaders": ["content-type"], "ExposeHeaders": ["retry-after"], "MaxAge": 300, "AllowCredentials": false}}
+    },
+    "PublicUrlPermission": {"Type": "AWS::Lambda::Permission", "Properties": {"FunctionName": {"Ref": "FrameFunction"}, "Action": "lambda:InvokeFunctionUrl", "Principal": "*", "FunctionUrlAuthType": "NONE"}},
+    "PublicInvokePermission": {"Type": "AWS::Lambda::Permission", "Properties": {"FunctionName": {"Ref": "FrameFunction"}, "Action": "lambda:InvokeFunction", "Principal": "*", "InvokedViaFunctionUrl": true}}
+  },
+  "Outputs": {
+    "SiteUrl": {"Value": {"Fn::Sub": "https://${Distribution.DomainName}"}},
+    "ApiUrl": {"Value": {"Fn::GetAtt": ["FunctionUrl", "FunctionUrl"]}},
+    "StaticBucket": {"Value": {"Ref": "StaticBucket"}},
+    "DistributionId": {"Value": {"Ref": "Distribution"}},
+    "FunctionName": {"Value": {"Ref": "FrameFunction"}},
+    "BuildId": {"Value": {"Ref": "BuildId"}},
+    "ImageUri": {"Value": {"Ref": "ImageUri"}},
+    "ConcurrencyMode": {"Value": {"Ref": "ConcurrencyMode"}},
+    "MemorySize": {"Value": {"Ref": "MemorySize"}},
+    "InferenceThreads": {"Value": {"Ref": "InferenceThreads"}}
+  }
+}

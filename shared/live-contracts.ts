@@ -12,7 +12,6 @@ import type {
 
 /** Live evidence has session identity, never a fabricated finished-video hash. */
 export interface LiveConfig {
-  protocol_version: 1;
   session_id: string;
   epoch: number;
   calibration_id: string;

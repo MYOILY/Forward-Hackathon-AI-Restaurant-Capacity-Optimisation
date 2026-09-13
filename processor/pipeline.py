@@ -171,11 +171,10 @@ def prepare(args, progress=None):
     atomic_copy(source, output / source_file)
     _save_png(output / "original_scene.png", frame)
     layout = {
-        "schema_version": 2,
-        "policy": "automatic_v2",
+        "policy": "automatic",
         "provenance": args.provenance or "real_video",
         "calibration_confirmed": False,
-        "video": {"file": source_file, "sha256": sha256_file(source), **metadata},
+        "video": {"file": source_file, "source_kind": "processed_file", "sha256": sha256_file(source), **metadata},
         "original_scene": "original_scene.png",
         "tables": tables,
         "staff_events": [],
@@ -387,7 +386,7 @@ def refresh_layout(args):
         Path(args.out).resolve(),
     )
     layout = load_json(layout_path)
-    if layout.get("schema_version") != 2 or layout.get("policy") != "automatic_v2":
+    if "schema_version" in layout or layout.get("policy") != "automatic":
         raise ValueError(
             "Unsupported layout. Reprocess the recording before refreshing references."
         )
@@ -435,10 +434,6 @@ def analyze(args, progress=None):
         Path(args.out).resolve(),
     )
     layout = load_json(layout_path)
-    if layout.get("schema_version") != 2:
-        raise ValueError(
-            "Unsupported layout. Reprocess the recording with the current application."
-        )
     validate_layout(layout)
     output.mkdir(parents=True, exist_ok=True)
     if layout["rules"].get("demo_timing_scale") is not None and args.provenance not in (
@@ -623,8 +618,7 @@ def analyze(args, progress=None):
         identity["output_file"] = original_scene
     stages["asset_copy"] = perf_counter() - assets_started
     bundle = {
-        "schema_version": 2,
-        "policy": "automatic_v2",
+        "policy": "automatic",
         "provenance": args.provenance or layout.get("provenance", "real_video"),
         "video": {
             **layout["video"],
@@ -935,8 +929,7 @@ def analyze(args, progress=None):
         {name: version(name) for name in ("trackers", "supervision")}
     )
     telemetry = {
-        "schema_version": 2,
-        "policy": "automatic_v2",
+        "policy": "automatic",
         "provenance": bundle["provenance"],
         "video_sha256": video_hash,
         "layout_sha256": layout_hash,

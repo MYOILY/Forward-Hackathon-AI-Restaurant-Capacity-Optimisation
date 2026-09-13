@@ -48,7 +48,6 @@ class LiveRun:
             for t in tables
         ]
         self.config = {
-            "protocol_version": 1,
             "session_id": self.session_id,
             "epoch": self.epoch,
             "calibration_id": hashlib.sha256(

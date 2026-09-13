@@ -1,0 +1,39 @@
+{
+  "policy": "automatic",
+  "provenance": "synthetic_fixture",
+  "video_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "intervals": [
+    {
+      "table_id": "T1",
+      "start": 0,
+      "end": 5,
+      "occupancy": "occupied",
+      "surface_condition": "unobservable",
+      "expected_status": "unknown",
+      "expected_people_state": "pending_arrival",
+      "expected_surface_state": "unverified",
+      "evaluable": true
+    },
+    {
+      "table_id": "T1",
+      "start": 5,
+      "end": 10,
+      "occupancy": "occupied",
+      "surface_condition": "unobservable",
+      "expected_status": "occupied",
+      "expected_people_state": "occupied",
+      "expected_surface_state": "unverified",
+      "evaluable": true
+    }
+  ],
+  "transitions": [
+    {
+      "table_id": "T1",
+      "status": "occupied",
+      "physical_t": 0,
+      "expected_t": 5,
+      "tolerance_s": 0.1
+    }
+  ],
+  "staff_events": []
+}

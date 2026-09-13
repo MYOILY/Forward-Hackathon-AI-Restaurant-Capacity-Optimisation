@@ -17,6 +17,7 @@ export function createCurrentCropRenderer() {
     table: Table,
     fps: number,
     frameTime = media.currentTime,
+    exactTimestamp = false,
   ): void => {
     if (media.readyState < 2) return;
     const width = media.videoWidth,
@@ -38,7 +39,7 @@ export function createCurrentCropRenderer() {
     }
     // requestVideoFrameCallback supplies the decoded frame's source time. The
     // nominal frame index also deduplicates paused timeupdate/seeked events.
-    const frame = Math.floor(frameTime * fps + 1e-5);
+    const frame = exactTimestamp ? frameTime : Math.floor(frameTime * fps + 1e-5);
     if (lastFrame === frame) return;
     const context = target.getContext("2d");
     if (!context)

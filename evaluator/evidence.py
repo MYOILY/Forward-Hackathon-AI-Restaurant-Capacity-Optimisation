@@ -15,7 +15,7 @@ def ready_evidence_errors(bundle, table_id, t, state, events):
     if state.get("people_state") != "vacant":
         return ["Ready snapshot is not stably vacant"]
     if state.get("readiness_source") == "staff_override":
-        if bundle.get("schema_version") != 2 or state.get("presence") != "absent":
+        if "schema_version" in bundle or bundle.get("policy") != "automatic" or state.get("presence") != "absent":
             return [
                 "Staff override requires the current bundle format and reliable vacancy"
             ]

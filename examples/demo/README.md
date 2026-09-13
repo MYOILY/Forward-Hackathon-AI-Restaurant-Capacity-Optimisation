@@ -1,8 +1,8 @@
 # Demo clip
 
 A small, redistributable sample so the setup and analysis flow can be run
-without supplying your own recording. These two files are the only media this
-repository ships.
+without supplying your own recording. These are the repository's bundled demo
+inputs; documentation screenshots and test fixtures have separate purposes.
 
 | File | Detail |
 | --- | --- |
@@ -35,10 +35,13 @@ sha256  clean-frame.jpg  ed9283dac416481814defb509b6a9770168b8a0a650e55a9476982d
 
 ## Use it
 
-Start the application, choose **Upload a recording**, and select `scene.mp4`.
-When asked for a clean reference, either pick a reset frame from the recording
-or upload `clean-frame.jpg`. Review and approve every table before analysis;
-nothing here is pre-approved. Full steps are in [Setup](../../docs/SETUP.md).
+Start the application using the [README](../../README.md#start-locally), then
+follow the [step-by-step demo walkthrough](../../docs/SETUP.md#try-the-demo).
+Under **Upload a recording**, select manual table drawing, click **Choose video**,
+and select `scene.mp4`. Upload `clean-frame.jpg` when asked for a clean reference
+and choose a schematic floor plan. Review one table first, then add the others
+when you are comfortable. Nothing here is pre-approved.
 
-Your own material belongs in `examples/videos` and `examples/mappings`, which
-stay empty in version control.
+You can select your own material from any local folder. `examples/videos` and
+`examples/mappings` are optional convenience folders that start empty in version
+control.

@@ -7,7 +7,6 @@ from pathlib import Path
 
 def test_actual_live_jsonl_preserves_capture_dwell_and_tick_expiry(bundle):
     config = {
-        "protocol_version": 1,
         "session_id": "stdio-live",
         "epoch": 2,
         "calibration_id": "reviewed-calibration",

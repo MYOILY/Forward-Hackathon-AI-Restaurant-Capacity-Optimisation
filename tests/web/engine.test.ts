@@ -6,6 +6,25 @@ import { validateBundle } from "../../web/src/validation";
 import { clean, fixture, legacyFixture } from "./fixtures";
 
 describe("submitted recording contract", () => {
+  it("uses one recording format with explicit media provenance", () => {
+    const bundle = fixture();
+    expect(bundle).not.toHaveProperty("schema_version");
+    expect(bundle.policy).toBe("automatic");
+    expect(bundle.video.source_kind).toBe("processed_file");
+    expect(() => validateBundle(bundle)).not.toThrow();
+  });
+  it.each([1, 2, 3, undefined])("rejects numbered recording metadata: %s", (schema_version) => {
+    const bundle = { ...fixture(), schema_version };
+    expect(() => validateBundle(bundle)).toThrow(/unsupported analysis format/);
+  });
+  it.each([undefined, "automatic_v2", "legacy_v1"])("rejects unsupported recording policies: %s", (policy) => {
+    expect(() => validateBundle({ ...fixture(), policy })).toThrow(/unsupported analysis format/);
+  });
+  it.each([undefined, "unknown"])("requires a current video source kind: %s", (source_kind) => {
+    const bundle = fixture();
+    expect(() => validateBundle({ ...bundle, video: { ...bundle.video, source_kind } }))
+      .toThrow(/video source kind/);
+  });
   it("rejects a legacy recording without mutating the input or an existing session", () => {
     const current = createReplaySession(fixture());
     const before = current.advanceTo(6);

@@ -39,7 +39,7 @@ const assert = (condition: unknown, message: string): void => {
 
 function validateConfig(config: LiveConfig) {
   assert(
-    config?.protocol_version === 1 &&
+    config && !("protocol_version" in config) &&
       typeof config.session_id === "string" &&
       config.session_id &&
       typeof config.calibration_id === "string" &&

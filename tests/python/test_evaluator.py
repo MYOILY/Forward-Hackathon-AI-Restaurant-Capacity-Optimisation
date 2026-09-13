@@ -431,13 +431,11 @@ def test_B20_three_main_trials_and_one_heldout_evaluation_satisfy_requested_coun
             "status": "passed",
             "provenance": "manual_real_video",
             "video_sha256": "a" * 64,
-            "schema_version": 2,
         },
         "held_out": {
             "status": "passed",
             "provenance": "manual_real_video",
             "video_sha256": "b" * 64,
-            "schema_version": 2,
         },
     }
     trials = [

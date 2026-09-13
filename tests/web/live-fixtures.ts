@@ -11,7 +11,6 @@ export function liveConfig(detectionOnly = false, tableCount = 1): LiveConfig {
   const base = replayFixture(1, undefined, tableCount);
   if (!detectionOnly) base.tables.forEach((table) => approveObjects(table));
   return {
-    protocol_version: 1,
     session_id: "independent-session",
     epoch: 1,
     calibration_id: "calibration-A",

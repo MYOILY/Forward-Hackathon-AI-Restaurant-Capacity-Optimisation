@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { CalibrationTable, SourceInfo } from "../../shared/live-contracts";
 import type { Detection, ObjectBaseline, Point } from "../../shared/contracts";
-import { api, assetPath, imageSource, jsonBody, validLabel } from "./api";
+import { api as defaultApi, assetPath as defaultAssetPath, imageSource, jsonBody, validLabel } from "./api";
 import { ExpectedInventory, ObjectPhoto, objectName } from "./ObjectEvidence";
 import { FloorPlanEditor } from "./FloorPlanEditor";
 import { contained } from "./floor-plan-geometry";
@@ -100,13 +100,19 @@ export function CalibrationEditor({
   onCancel,
   onDirtyChange,
   initialSection,
+  adapter,
 }: {
   source: SourceInfo;
   initialSection?: "references";
   onSaved: (source: SourceInfo) => void;
   onCancel: () => void;
   onDirtyChange?: (dirty: boolean) => void;
+  /** Browser-owned recordings keep setup and assets in memory. */
+  adapter?: { api: typeof defaultApi; assetPath: typeof defaultAssetPath; persistentDrafts: boolean; canDeleteSavedTables?: boolean };
 }) {
+  const api = adapter?.api ?? defaultApi;
+  const assetPath = adapter?.assetPath ?? defaultAssetPath;
+  const persistentDrafts = adapter?.persistentDrafts ?? true;
   const [working, setWorking] = useState(source),
     [tables, setTables] = useState<CalibrationTable[]>(() => normalize(source));
   const initial = resumeSetup(source);
@@ -145,6 +151,7 @@ export function CalibrationEditor({
     floorMode?: SourceInfo["floor_plan_mode"];
     drawings: Record<string, Point[]>;
   } | null>(() => {
+    if (!persistentDrafts) return null;
     try {
       return JSON.parse(
         localStorage.getItem(`tablewatch-edit-${source.id}`) ?? "null",
@@ -170,8 +177,18 @@ export function CalibrationEditor({
   const tablesRef = useRef(tables);
   tablesRef.current = tables;
   const persistedIds = useRef(new Set(source.tables.map((t) => t.id)));
+  const usedIds = useRef(new Set(source.tables.map((t) => t.id)));
+  const [deletedTable, setDeletedTable] = useState<{
+    table: CalibrationTable;
+    index: number;
+    drawing?: Point[];
+    evidence?: Evidence;
+    step: TableStep;
+    region: number;
+  } | null>(null);
   const leaveDialog = useRef<HTMLDivElement>(null);
-  const [numericCorners, setNumericCorners] = useState(false);
+  const [numericCorners, setNumericCorners] = useState(false),
+    [showOtherTables, setShowOtherTables] = useState(false);
   const table = tables.find((t) => t.id === selected),
     drawing = drawings[selected],
     plan =
@@ -283,6 +300,7 @@ export function CalibrationEditor({
     return () => window.removeEventListener("beforeunload", prevent);
   }, [dirty]);
   useEffect(() => {
+    if (!persistentDrafts) return;
     if (!cacheResolved && cache) return;
     try {
       if (dirty)
@@ -343,7 +361,9 @@ export function CalibrationEditor({
         return n;
       });
       setNotice(
-        "Camera geometry changed. Review its geometry step and expected objects again.",
+        patch.tabletop_polygon
+          ? "Table corners changed. Review the people zone and expected objects again."
+          : "Camera geometry changed. Review its geometry step and expected objects again.",
       );
     }
     setTables((old) =>
@@ -360,6 +380,17 @@ export function CalibrationEditor({
                   }
                 : {}),
               ...patch,
+              ...(patch.tabletop_polygon
+                ? {
+                    video_region: bounds(patch.tabletop_polygon),
+                    crop: bounds(patch.tabletop_polygon),
+                    setup_review: {
+                      ...(t.setup_review ?? unreviewed),
+                      ...patch.setup_review,
+                      occupancy: false,
+                    },
+                  }
+                : {}),
             }
           : t,
       ),
@@ -376,8 +407,51 @@ export function CalibrationEditor({
     setDoneTable(null);
     setError("");
   }
+  function deleteTable() {
+    if (!table || lock.current ||
+      (persistedIds.current.has(table.id) && !adapter?.canDeleteSavedTables)) return;
+    const index = tables.findIndex((t) => t.id === table.id);
+    usedIds.current.add(table.id);
+    setDeletedTable({ table, index, drawing: drawings[table.id], evidence: evidence[table.id], step, region });
+    const next = tables.filter((t) => t.id !== table.id);
+    const nextTable = next[Math.min(index, next.length - 1)];
+    serial.current++;
+    drag.current = null;
+    setTables(next);
+    tablesRef.current = next;
+    setDrawings((old) => { const remaining = { ...old }; delete remaining[table.id]; return remaining; });
+    setEvidence((old) => { const remaining = { ...old }; delete remaining[table.id]; return remaining; });
+    setSelected(nextTable?.id ?? "");
+    setStep(nextTable ? nextTableStep(nextTable) ?? "objects" : "tabletop");
+    setRegion(0);
+    setNumericCorners(false);
+    setError("");
+    setNotice("");
+    markDirty();
+  }
+  function undoDeleteTable() {
+    if (!deletedTable || lock.current) return;
+    const next = [...tables];
+    next.splice(deletedTable.index, 0, deletedTable.table);
+    setTables(next);
+    tablesRef.current = next;
+    const { table: restored, drawing, evidence: restoredEvidence } = deletedTable;
+    if (drawing) setDrawings((old) => ({ ...old, [restored.id]: drawing }));
+    if (restoredEvidence) setEvidence((old) => ({ ...old, [restored.id]: restoredEvidence }));
+    setSelected(restored.id);
+    setStep(deletedTable.step);
+    setRegion(deletedTable.region);
+    setSection("tables");
+    setNumericCorners(false);
+    setDeletedTable(null);
+    setError("");
+    markDirty();
+    if (JSON.stringify({ tables: next, reference, floorMode }) === saved.current &&
+      !drawing && Object.keys(drawings).length === 0) setStatus("Saved");
+  }
   function changeReference(next: Reference) {
     markDirty();
+    setDeletedTable(null);
     serial.current++;
     setReference(next);
     setEvidence({});
@@ -430,6 +504,7 @@ export function CalibrationEditor({
       );
       revision.current = result.revision;
       setWorking(result);
+      setDeletedTable(null);
       result.tables.forEach((t) => persistedIds.current.add(t.id));
       // Draft storage deliberately drops unapproved proposals; keep valid evidence in this mounted session.
       const merged = normalize(result).map((t) => {
@@ -455,7 +530,7 @@ export function CalibrationEditor({
       retry.current = null;
       if (finish) {
         try {
-          localStorage.removeItem(`tablewatch-edit-${source.id}`);
+          if (persistentDrafts) localStorage.removeItem(`tablewatch-edit-${source.id}`);
         } catch {}
         onSaved(result);
       } else after?.();
@@ -497,7 +572,7 @@ export function CalibrationEditor({
   function addTable() {
     let n = 1;
     while (
-      tables.some(
+      usedIds.current.has(`T${n}`) || tables.some(
         (t) => t.id === `T${n}` || t.label.toLowerCase() === `table ${n}`,
       )
     )
@@ -530,6 +605,7 @@ export function CalibrationEditor({
       ...reference,
       reference_approved: false,
     };
+    usedIds.current.add(id);
     setTables((old) => [...old, added]);
     setDrawings((old) => ({ ...old, [id]: [] }));
     setSelected(id);
@@ -564,6 +640,7 @@ export function CalibrationEditor({
       );
       revision.current = result.revision;
       setWorking(result);
+      setDeletedTable(null);
       if (kind === "clean_reference")
         changeReference({
           reference_source: "uploaded_image",
@@ -730,6 +807,24 @@ export function CalibrationEditor({
     step === "tabletop"
       ? table?.tabletop_polygon
       : table?.occupancy_regions?.[region];
+  const cameraPolygons = tables
+    .flatMap((t) => {
+      if (t.id !== selected && !showOtherTables) return [];
+      if (t.id === selected && drawing !== undefined && step === "tabletop")
+        return [];
+      const polygons =
+        step === "tabletop"
+          ? [t.tabletop_polygon ?? []]
+          : (t.occupancy_regions ?? []);
+      return polygons.map((poly, r) => ({
+        tableId: t.id,
+        poly,
+        region: r,
+        active: t.id === selected && (step === "tabletop" || region === r),
+      }));
+    })
+    // SVG paint order also controls hit testing: keep the editable layer last.
+    .sort((a, b) => Number(a.active) - Number(b.active));
   function restoreEdits() {
     if (!cache || cache.revision !== revision.current) return;
     const restored = cache.tables.map((t) => ({
@@ -974,6 +1069,14 @@ export function CalibrationEditor({
           </p>
         )}
         <fieldset className="guided-work-fields" disabled={busy}>
+          {deletedTable && (
+            <div className="guided-delete-notice" role="status">
+              <span>Deleted {deletedTable.table.label}. Save your draft to keep this change.</span>
+              <button className="button secondary" data-testid="calibration-undo-delete" onClick={undoDeleteTable}>
+                Undo delete
+              </button>
+            </div>
+          )}
           {section === "references" && (
             <div className="setup-assets-grid">
               <section className="setup-asset-card">
@@ -1136,6 +1239,7 @@ export function CalibrationEditor({
                     type="checkbox"
                     checked={floorMode === "schematic"}
                     onChange={(e) => {
+                      setDeletedTable(null);
                       setFloorMode(
                         e.target.checked
                           ? "schematic"
@@ -1294,6 +1398,19 @@ export function CalibrationEditor({
                       />
                       Monitor this table
                     </label>
+                    <div className="guided-table-maintenance">
+                      <button
+                        className="button secondary guided-delete-table"
+                        data-testid="calibration-delete-table"
+                        disabled={persistedIds.current.has(selected) && !adapter?.canDeleteSavedTables}
+                        onClick={deleteTable}
+                      >
+                        Delete table
+                      </button>
+                      {persistedIds.current.has(selected) && !adapter?.canDeleteSavedTables && (
+                        <small>Turn off monitoring to exclude a saved table from this local source.</small>
+                      )}
+                    </div>
                   </div>
                   <div hidden={step !== "map"}>
                     <FloorPlanEditor
@@ -1417,104 +1534,93 @@ export function CalibrationEditor({
                             width={width}
                             height={height}
                           />
-                          {tables.map((t) => {
-                            if (
-                              t.id === selected &&
-                              drawing !== undefined &&
-                              step === "tabletop"
-                            )
-                              return null;
-                            const polygons =
-                              step === "tabletop"
-                                ? [t.tabletop_polygon ?? []]
-                                : (t.occupancy_regions ?? []);
-                            return (
-                              <g key={t.id}>
-                                {polygons.map((poly, r) => (
-                                  <g key={r}>
-                                    <polygon
-                                      points={poly
-                                        .map(
-                                          (p) =>
-                                            `${p[0] * width},${p[1] * height}`,
-                                        )
-                                        .join(" ")}
-                                      fill={
-                                        t.id === selected
-                                          ? "var(--selection-fill)"
-                                          : "#ffffff12"
-                                      }
-                                      stroke={
-                                        t.id === selected
-                                          ? "var(--action)"
-                                          : "var(--border)"
-                                      }
+                          {cameraPolygons.map(
+                            ({ tableId, poly, region: r, active }) => (
+                              <g
+                                key={`${tableId}-${r}`}
+                                pointerEvents={active ? undefined : "none"}
+                              >
+                                <polygon
+                                  points={poly
+                                    .map(
+                                      (p) =>
+                                        `${p[0] * width},${p[1] * height}`,
+                                    )
+                                    .join(" ")}
+                                  fill={
+                                    active
+                                      ? "var(--selection-fill)"
+                                      : "none"
+                                  }
+                                  stroke={
+                                    active
+                                      ? "var(--action)"
+                                      : "var(--border)"
+                                  }
+                                  strokeWidth={active ? 3 : 1.5}
+                                  opacity={active ? 1 : 0.6}
+                                  strokeDasharray={
+                                    step === "occupancy"
+                                      ? "10 5"
+                                      : undefined
+                                  }
+                                />
+                                {active &&
+                                  poly.map((p, i) => (
+                                    <circle
+                                      key={i}
+                                      data-testid={`calibration-handle-${i}`}
+                                      cx={p[0] * width}
+                                      cy={p[1] * height}
+                                      r="10"
+                                      fill="white"
+                                      stroke="var(--action)"
                                       strokeWidth="3"
-                                      strokeDasharray={
-                                        step === "occupancy"
-                                          ? "10 5"
-                                          : undefined
-                                      }
+                                      role="button"
+                                      tabIndex={0}
+                                      aria-label={`${step === "tabletop" ? "Table corner" : "People-zone point"} ${i + 1}. Use arrow keys to adjust.`}
+                                      onKeyDown={(e) => {
+                                        const d = e.shiftKey ? 0.01 : 0.001;
+                                        if (!e.key.startsWith("Arrow"))
+                                          return;
+                                        e.preventDefault();
+                                        setCorner(tableId, step, r, i, [
+                                          clamp(
+                                            p[0] +
+                                              (e.key === "ArrowRight"
+                                                ? d
+                                                : e.key === "ArrowLeft"
+                                                  ? -d
+                                                  : 0),
+                                          ),
+                                          clamp(
+                                            p[1] +
+                                              (e.key === "ArrowDown"
+                                                ? d
+                                                : e.key === "ArrowUp"
+                                                  ? -d
+                                                  : 0),
+                                          ),
+                                        ]);
+                                      }}
+                                      onPointerDown={(e) => {
+                                        if (busy) return;
+                                        e.stopPropagation();
+                                        drag.current = {
+                                          tableId,
+                                          step,
+                                          region: r,
+                                          index: i,
+                                        };
+                                        svg.current?.setPointerCapture(
+                                          e.pointerId,
+                                        );
+                                      }}
                                     />
-                                    {t.id === selected &&
-                                      (step !== "occupancy" || region === r) &&
-                                      poly.map((p, i) => (
-                                        <circle
-                                          key={i}
-                                          data-testid={`calibration-handle-${i}`}
-                                          cx={p[0] * width}
-                                          cy={p[1] * height}
-                                          r="10"
-                                          fill="white"
-                                          stroke="var(--action)"
-                                          strokeWidth="3"
-                                          role="button"
-                                          tabIndex={0}
-                                          aria-label={`${step === "tabletop" ? "Table corner" : "People-zone point"} ${i + 1}. Use arrow keys to adjust.`}
-                                          onKeyDown={(e) => {
-                                            const d = e.shiftKey ? 0.01 : 0.001;
-                                            if (!e.key.startsWith("Arrow"))
-                                              return;
-                                            e.preventDefault();
-                                            setCorner(t.id, step, r, i, [
-                                              clamp(
-                                                p[0] +
-                                                  (e.key === "ArrowRight"
-                                                    ? d
-                                                    : e.key === "ArrowLeft"
-                                                      ? -d
-                                                      : 0),
-                                              ),
-                                              clamp(
-                                                p[1] +
-                                                  (e.key === "ArrowDown"
-                                                    ? d
-                                                    : e.key === "ArrowUp"
-                                                      ? -d
-                                                      : 0),
-                                              ),
-                                            ]);
-                                          }}
-                                          onPointerDown={(e) => {
-                                            if (busy) return;
-                                            e.stopPropagation();
-                                            drag.current = {
-                                              tableId: t.id,
-                                              step,
-                                              region: r,
-                                              index: i,
-                                            };
-                                            svg.current?.setPointerCapture(
-                                              e.pointerId,
-                                            );
-                                          }}
-                                        />
-                                      ))}
-                                  </g>
-                                ))}
+                                  ))}
                               </g>
-                            );
-                          })}
+                            ),
+                          )}
                           {step === "tabletop" && drawing !== undefined && (
                             <g>
                               <polyline
@@ -1559,6 +1665,18 @@ export function CalibrationEditor({
                             ? "Table corners"
                             : "People zone"}
                         </h3>
+                        {tables.length > 1 && (
+                          <label className="setup-check">
+                            <input
+                              type="checkbox"
+                              checked={showOtherTables}
+                              onChange={(e) =>
+                                setShowOtherTables(e.target.checked)
+                              }
+                            />
+                            Show other tables
+                          </label>
+                        )}
                         {step === "tabletop" ? (
                           <>
                             <p className="drawing-progress" role="status">
@@ -1827,38 +1945,6 @@ export function CalibrationEditor({
                       </aside>
                     </div>
                   )}
-                  <div className="guided-table-maintenance">
-                    <button
-                      className="text-button"
-                      data-testid="calibration-delete-table"
-                      disabled={persistedIds.current.has(selected)}
-                      onClick={() => {
-                        if (persistedIds.current.has(selected)) return;
-                        const next = tables.filter((t) => t.id !== selected);
-                        setTables(next);
-                        setDrawings((old) => {
-                          const n = { ...old };
-                          delete n[selected];
-                          return n;
-                        });
-                        setSelected(next[0]?.id ?? "");
-                        setStep(
-                          next[0]
-                            ? (nextTableStep(next[0]) ?? "objects")
-                            : "tabletop",
-                        );
-                        markDirty();
-                      }}
-                    >
-                      Remove draft table
-                    </button>
-                    {persistedIds.current.has(selected) && (
-                      <small>
-                        Saved table IDs remain stable. Turn off monitoring to
-                        exclude this table.
-                      </small>
-                    )}
-                  </div>
                 </>
               )}
             </div>
@@ -2026,7 +2112,9 @@ export function CalibrationEditor({
             <h3>Keep your setup progress?</h3>
             <p>
               Your latest changes have not all been saved to the source.
-              Unfinished corners can be recovered in this browser.
+              {persistentDrafts
+                ? " Unfinished corners can be recovered in this browser."
+                : " Save your draft before leaving to keep them in this tab."}
             </p>
             <button className="button dark" onClick={() => setLeave(false)}>
               Keep editing
@@ -2041,7 +2129,7 @@ export function CalibrationEditor({
               Save draft & leave
             </button>
             <button className="text-button" onClick={onCancel}>
-              Leave with browser recovery
+              {persistentDrafts ? "Leave with browser recovery" : "Discard unsaved changes"}
             </button>
           </div>
         </>

@@ -28,7 +28,6 @@ def stage_layout(bundle: dict, source_root: Path, staging: Path) -> Path:
             {
                 key: bundle[key]
                 for key in (
-                    "schema_version",
                     "video",
                     "original_scene",
                     "tables",
@@ -154,8 +153,8 @@ def run_trial(
     output.mkdir(parents=True, exist_ok=True)
     layout_data = json.loads(layout.read_text())
     if (
-        layout_data.get("schema_version") != 2
-        or layout_data.get("policy") != "automatic_v2"
+        "schema_version" in layout_data
+        or layout_data.get("policy") != "automatic"
     ):
         return {
             "model": model,

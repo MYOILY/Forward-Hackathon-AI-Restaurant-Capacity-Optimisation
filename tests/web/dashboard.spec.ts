@@ -13,6 +13,11 @@ import os from "node:os";
 const recording = path.resolve("tests/fixtures/workflow");
 
 async function mediaTime(page: Page, time: number) {
+  // Importing a folder replaces the source after beforeEach has loaded the
+  // initial recording. Wait for the new media before issuing a seek.
+  await expect.poll(() => page.getByTestId("video").evaluate(
+    element => (element as HTMLVideoElement).readyState,
+  )).toBeGreaterThanOrEqual(2);
   await page.getByTestId("video").evaluate(async (element, value) => {
     const video = element as HTMLVideoElement;
     video.pause();

@@ -19,15 +19,17 @@ def check_repository(root: Path = ROOT) -> list[str]:
     documents = [root / "README.md", *sorted((root / "docs").glob("*.md"))]
     required = {
         "SETUP.md",
+        "USAGE.md",
         "BEHAVIOR.md",
         "ARCHITECTURE.md",
         "REFERENCE.md",
         "DEPLOYMENT.md",
         "VALIDATION.md",
+        "STATELESS_DEPLOYMENT.md",
     }
     actual = {path.name for path in (root / "docs").glob("*.md")}
     if actual != required:
-        errors.append("docs/ must contain exactly the six current guides")
+        errors.append("docs/ must contain exactly the eight current guides")
     for document in documents:
         if not document.is_file():
             errors.append(f"Missing document: {document.relative_to(root)}")

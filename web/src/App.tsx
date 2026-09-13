@@ -7,6 +7,7 @@ import {
 import { surfaceStabilityTiming } from "./surface-stability";
 import { OriginalScene, uploadedOriginal } from "./OriginalScene";
 import { TableOverlayLabel } from "./TableOverlayLabel";
+import { tableOverlayGeometry } from "./table-overlay-geometry";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
@@ -45,6 +46,9 @@ import { createCurrentCropRenderer } from "./cropRenderer";
 import { monitoringKey, saveMonitoring, withMonitoring } from "./monitoring";
 import { COLOURS, ServiceControls } from "./ServiceControls";
 import { InputWorkspace } from "./InputWorkspace";
+import { StatelessInputWorkspace } from "./StatelessInputWorkspace";
+import { isStatelessMode } from "./stateless/config";
+import { getStatelessRecording, renameStatelessTable } from "./stateless/recording";
 import type { SourceInfo } from "../../shared/live-contracts";
 import { api, jsonBody, validLabel } from "./api";
 type Loaded = {
@@ -62,6 +66,7 @@ function speedFromUrl(): string {
     : "1";
 }
 function sourceFromUrl(): string | null {
+  if (isStatelessMode) return null;
   return new URLSearchParams(window.location.search).get("source") || null;
 }
 const STATUS: Record<
@@ -107,6 +112,7 @@ const stamp = (seconds: number) =>
 const labelKey = (bundle: Bundle, id: string) =>
   `tablewatch:label:v1:${bundle.video.sha256}:${encodeURIComponent(id)}`;
 function restoreLabels(bundle: Bundle): Bundle {
+  if (bundle.video.source_kind === "browser_file") return bundle;
   return {
     ...bundle,
     tables: bundle.tables.map((table) => {
@@ -227,10 +233,11 @@ export default function App() {
     setError("");
     (async () => {
       try {
-        const source = await api<SourceInfo>(
+        const source = isStatelessMode ? getStatelessRecording(sourceToOpen)?.source : await api<SourceInfo>(
           `/sources/${encodeURIComponent(sourceToOpen)}`,
           { signal: controller.signal },
         );
+        if (!source) throw new Error("This recording session has ended. Select the video again.");
         await openProcessedSource(source, controller.signal);
       } catch (err) {
         if (!controller.signal.aborted)
@@ -299,6 +306,7 @@ export default function App() {
           table,
           bundle!.video.fps,
           frameTime,
+          bundle!.video.source_kind === "browser_file",
         );
         setCropError("");
       } catch (err) {
@@ -459,38 +467,45 @@ export default function App() {
   function setMonitoring(enabled: boolean) {
     if (!bundle || !table) return;
     const key = monitoringKey(bundle, table);
-    saveMonitoring(key, enabled);
+    if (bundle.video.source_kind !== "browser_file") saveMonitoring(key, enabled);
     setMonitoringChoices((choices) => ({ ...choices, [key]: enabled }));
     setStaffEvents((events) =>
       events.filter((event) => event.table_id !== table.id),
     );
   }
   function mergeSource(source: SourceInfo) {
-    setLoaded((current) =>
-      current?.source?.id === source.id
-        ? {
-            ...current,
-            source,
-            bundle: {
-              ...current.bundle,
-              floor_plan:
-                source.floor_plan_mode === "uploaded"
-                  ? source.setup_assets?.floor_plan
-                  : source.floor_plan_mode === "schematic"
-                    ? undefined
-                    : current.bundle.floor_plan,
-              tables: current.bundle.tables.map((table) => {
-                const fresh = source.tables.find(
-                  (item) => item.id === table.id,
-                );
-                return fresh
-                  ? { ...table, label: fresh.label, map: fresh.map }
-                  : table;
-              }),
-            },
-          }
-        : current,
-    );
+    setLoaded((current) => {
+      if (current?.source?.id !== source.id) return current;
+      // A changed browser setup needs fresh observations and assessments.
+      // Keeping the previous bundle would also keep tables removed in setup.
+      if (
+        current.bundle.video.source_kind === "browser_file" &&
+        source.revision !== current.bundle.analysis.setup_revision
+      ) {
+        return null;
+      }
+      return {
+        ...current,
+        source,
+        bundle: {
+          ...current.bundle,
+          floor_plan:
+            source.floor_plan_mode === "uploaded"
+              ? source.setup_assets?.floor_plan
+              : source.floor_plan_mode === "schematic"
+                ? undefined
+                : current.bundle.floor_plan,
+          tables: current.bundle.tables.map((table) => {
+            const fresh = source.tables.find(
+              (item) => item.id === table.id,
+            );
+            return fresh
+              ? { ...table, label: fresh.label, map: fresh.map }
+              : table;
+          }),
+        },
+      };
+    });
   }
   async function renameTable() {
     if (!loaded || !bundle || !table || savingName) return;
@@ -503,7 +518,9 @@ export default function App() {
           .map((item) => item.label),
       );
       if (label !== table.label) {
-        if (loaded.source) {
+        if (bundle.video.source_kind === "browser_file" && loaded.source) {
+          mergeSource(renameStatelessTable(loaded.source.id, table.id, label));
+        } else if (loaded.source) {
           const source = loaded.source;
           const result = await api<SourceInfo>(
             `/sources/${source.id}/calibration`,
@@ -521,7 +538,7 @@ export default function App() {
           mergeSource(result);
         } else {
           try {
-            localStorage.setItem(labelKey(bundle, table.id), label);
+            if (bundle.video.source_kind !== "browser_file") localStorage.setItem(labelKey(bundle, table.id), label);
           } catch {
             /* Metadata still updates in this session. */
           }
@@ -549,6 +566,15 @@ export default function App() {
   }
   async function openProcessedSource(source: SourceInfo, signal?: AbortSignal) {
     signal?.throwIfAborted();
+    if (isStatelessMode) {
+      const recording = getStatelessRecording(source.id);
+      if (!recording) throw new Error("This recording session has ended. Select the video again.");
+      const next = recording.result();
+      validateBundle(next.bundle);
+      await verifyBundleGeometry(next.bundle);
+      displayRecording(next, speedFromUrl());
+      return;
+    }
     if (source.status !== "completed" || !source.manifest_url)
       throw new Error(
         source.error || "This job has no completed analysis bundle yet.",
@@ -708,6 +734,26 @@ export default function App() {
     ? surfaceStabilityTiming(bundle.rules)
     : null;
   const waitLabel = (seconds: number) => Number(seconds.toFixed(2));
+  if (inputsOpen && isStatelessMode)
+    return <StatelessInputWorkspace
+      initialSetup={new URLSearchParams(window.location.search).get("setup") ?? "new"}
+      initialSection={new URLSearchParams(window.location.search).get("step") === "references" ? "references" : undefined}
+      onClose={() => {
+        const url = new URL(window.location.href);
+        for (const key of ["source", "setup", "step"]) url.searchParams.delete(key);
+        window.history.replaceState(null, "", url);
+        setInputsOpen(false);
+      }}
+      onSourceUpdate={mergeSource}
+      onBundle={async (next) => {
+        validateBundle(next.bundle);
+        await verifyBundleGeometry(next.bundle);
+        const url = new URL(window.location.href);
+        for (const key of ["source", "setup", "step"]) url.searchParams.delete(key);
+        window.history.replaceState(null, "", url);
+        displayRecording(next);
+      }}
+    />;
   if (inputsOpen)
     return (
       <InputWorkspace
@@ -834,16 +880,17 @@ export default function App() {
         ) : !bundle || !snapshot || !table || !state ? (
           <div className="loading-panel">
             <FolderOpen size={34} />
-            <h2>Start with an analyzed video</h2>
+            <h2>{isStatelessMode ? "Set up your video for analysis" : "Start with an analyzed video"}</h2>
             <p>
-              Open the folder containing bundle.json, its video, and reference
-              pictures.
+              {isStatelessMode
+                ? "Choose a video or return to a recording in this tab, review its tables, then analyze it to see results."
+                : "Open the folder containing bundle.json, its video, and reference pictures."}
             </p>
             <button
               className="button dark"
-              onClick={() => upload.current?.click()}
+              onClick={() => isStatelessMode ? openVideoSelection() : upload.current?.click()}
             >
-              Open bundle folder
+              {isStatelessMode ? "Set up or analyze a video" : "Open bundle folder"}
             </button>
           </div>
         ) : (
@@ -984,7 +1031,12 @@ export default function App() {
                       {bundle.tables
                         .filter((item) => item.monitoring_enabled !== false)
                         .map((item) => {
-                          const [x1, y1, x2, y2] = item.video_region;
+                          const geometry = tableOverlayGeometry(
+                            item,
+                            bundle.video.width,
+                            bundle.video.height,
+                          );
+                          if (!geometry) return null;
                           const cfg = STATUS[snapshot.tables[item.id].status];
                           return (
                             <g
@@ -993,12 +1045,8 @@ export default function App() {
                               onClick={() => setSelected(item.id)}
                               className="video-region"
                             >
-                              <rect
-                                x={x1 * bundle.video.width}
-                                y={y1 * bundle.video.height}
-                                width={(x2 - x1) * bundle.video.width}
-                                height={(y2 - y1) * bundle.video.height}
-                                rx="6"
+                              <polygon
+                                points={geometry.points}
                                 fill={cfg.color}
                                 fillOpacity={selected === item.id ? ".08" : "0"}
                                 stroke={cfg.color}

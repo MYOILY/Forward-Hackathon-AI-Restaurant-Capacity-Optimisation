@@ -245,6 +245,7 @@ test("B17 B18 current picture rectifies an angled tabletop to the reference corn
   );
   const bundle = await independentBundle(1);
   bundle.video = {
+    source_kind: "processed_file",
     file: "markers.mp4",
     sha256: manifest.video_sha256,
     width: 160,

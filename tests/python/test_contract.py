@@ -7,6 +7,9 @@ from processor.io import load_json, resolve_media, validate_bundle
 
 def test_valid_bundle(bundle):
     validate_bundle(bundle)
+    assert "schema_version" not in bundle
+    assert bundle["policy"] == "automatic"
+    assert bundle["video"]["source_kind"] == "processed_file"
 
 
 def test_ai_generated_provenance_is_preserved_not_promoted_to_real(bundle):
@@ -19,6 +22,11 @@ def test_ai_generated_provenance_is_preserved_not_promoted_to_real(bundle):
     "mutation",
     [
         lambda b: b.update(schema_version=1),
+        lambda b: b.update(schema_version=2),
+        lambda b: b.update(schema_version=3),
+        lambda b: b.update(policy="automatic_v2"),
+        lambda b: b["video"].pop("source_kind"),
+        lambda b: b["video"].update(source_kind="unknown"),
         lambda b: b["video"].update(file="../outside.mp4"),
         lambda b: b["video"].update(sha256="wrong"),
         lambda b: b["observations"].append(deepcopy(b["observations"][-1])),

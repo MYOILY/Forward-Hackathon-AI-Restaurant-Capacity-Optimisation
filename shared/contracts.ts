@@ -63,6 +63,14 @@ export interface SurfaceIdentity {
   baseline_sha256?: string;
   config_sha256?: string;
 }
+/** Identity of the exact image sent for inference, on the original media timeline. */
+export interface FrameCapture {
+  sample_index: number;
+  t: number;
+  width: number;
+  height: number;
+  sha256: string;
+}
 export interface Table extends SurfaceIdentity {
   expected_objects_draft?: ExpectedObject[];
   setup_review?: { tabletop: boolean; occupancy: boolean; map: boolean };
@@ -111,6 +119,7 @@ export interface SurfaceObservation {
   camera_moved?: boolean;
 }
 export interface Observation {
+  capture?: FrameCapture;
   t: number;
   frame_index: number;
   valid: boolean;
@@ -145,6 +154,7 @@ export interface Rules {
   track_grace_s?: number;
 }
 export interface AssessmentRequest extends SurfaceIdentity {
+  capture?: FrameCapture;
   id: string;
   table_id: string;
   t: number;
@@ -155,6 +165,7 @@ export interface AssessmentRequest extends SurfaceIdentity {
   reference_sha256: string;
 }
 export interface SurfaceAssessment extends SurfaceIdentity {
+  capture?: FrameCapture;
   object_evidence?: ObjectSurfaceEvidence;
   id: string;
   request_id: string;
@@ -175,10 +186,14 @@ export interface SurfaceAssessment extends SurfaceIdentity {
   error?: string;
 }
 export interface Bundle {
-  schema_version: 2;
-  policy: "automatic_v2";
+  policy: "automatic";
   provenance: "real_video" | "synthetic_fixture" | "ai_generated_video";
   video: {
+    source_kind: "browser_file" | "processed_file";
+    timestamp_source?: "mp4_presentation";
+    fps_kind?: "measured_average";
+    processing_width?: number;
+    processing_height?: number;
     file: string;
     sha256: string;
     width: number;
@@ -239,6 +254,8 @@ export interface Snapshot {
   events: LogEvent[];
 }
 export interface ReplaySession {
+  /** Append validated, strictly ordered evidence before advancing to its timestamp. */
+  appendObservation(observation: Observation): void;
   advanceTo(t: number): Snapshot;
   getAssessmentRequests(): AssessmentRequest[];
   submitAssessment(assessment: SurfaceAssessment): void;

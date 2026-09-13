@@ -1,5 +1,4 @@
 {
-  "schema_version": 1,
   "provenance": "ai_generated_video",
   "annotation_method": "The independent assistant subagent visually reviewed the rectified source frames, without model output. Annotations have not been human-verified. These AI-generated image pairs test local model execution and do not certify real restaurant accuracy.",
   "source_video_sha256": "cd04fb49fe68e965c8e325c60abaa2c6ee2a63e99f233592e5cf4c1938640ed8",

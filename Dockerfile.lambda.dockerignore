@@ -1,0 +1,13 @@
+# Only code and declared runtime inputs enter the Lambda build context.
+**
+!Dockerfile.lambda
+!requirements.lock.txt
+!infra/
+!infra/stateless/
+!infra/stateless/requirements.txt
+!processor/
+!processor/**/*.py
+!service/
+!service/**/*.py
+!shared/
+!shared/*.json

@@ -1,4 +1,5 @@
 import type { Table } from "../../shared/contracts";
+import { tableOverlayGeometry } from "./table-overlay-geometry";
 
 /** Human label first; stable identity remains available in the title and secondary text. */
 export function TableOverlayLabel({
@@ -12,6 +13,9 @@ export function TableOverlayLabel({
   height: number;
   color: string;
 }) {
+  const geometry = tableOverlayGeometry(table, width, height);
+  if (!geometry) return null;
+
   const font = Math.max(15, width / 78),
     padding = font * 0.55;
   const name =
@@ -29,9 +33,9 @@ export function TableOverlayLabel({
     badgeHeight = font * 1.65;
   const x = Math.max(
       0,
-      Math.min(width - badgeWidth, table.video_region[0] * width),
+      Math.min(width - badgeWidth, geometry.bounds.left),
     ),
-    y = Math.max(0, table.video_region[1] * height - badgeHeight);
+    y = Math.max(0, geometry.bounds.top - badgeHeight);
   return (
     <g className="table-overlay-label">
       <title>{`${table.label} · ID ${table.id}`}</title>

@@ -1,8 +1,75 @@
 # Architecture
 
+## Why the subscription needs near-real-time inference
+
+The intended TurnTable subscription provides restaurant staff with a current
+view of which tables are occupied, need a reset, or have enough evidence to be
+ready. Its ongoing value is helping staff respond during service: notice a
+departure, prioritize a table that needs cleaning, and check availability before
+seating the next guests.
+
+Inference is the model analyzing a camera image. Near-real-time inference means
+repeating that analysis on fresh images throughout service and updating the
+dashboard as evidence changes. An old result cannot establish whether a table
+is still available now.
+
+| What the service needs | Why it matters to the customer |
+| --- | --- |
+| Continuous access to fresh camera frames | Arrivals, departures and table changes can update the floor view during service. |
+| A model kept loaded during each active camera session | Incoming frames can use the running inference worker without initializing it for every frame. |
+| Tracking and table evidence carried across frames | A status decision can consider occupancy, vacancy and repeated tabletop checks over time. |
+| Ongoing dashboard updates and freshness checks | Staff can see current evidence; stale or uncertain observations do not establish automatic readiness. |
+
+We use the persistent EC2 service as the basis for this subscription workflow.
+It maintains the camera connection, running inference workers and session state
+needed for continuous monitoring. The reason for this choice is the ongoing
+workload and continuity of evidence; the small model also fits in the Lambda
+image used for the recording demo.
+
+"Near-real-time" does not mean every status changes instantly. The system
+deliberately waits for enough evidence to confirm arrivals, vacancy and readiness.
+See [status timing](BEHAVIOR.md#people-and-tabletop-timing). Those confirmation
+periods are separate from network and processing delay. Customer-facing response
+time and camera capacity still need measurement before making service promises.
+
+### What exists today and what the subscription still needs
+
+The current live service is a prototype: it receives frames from a browser camera
+session, uses one shared workspace, and permits one active analysis or camera
+session per service instance. It does not yet provide customer accounts,
+subscription billing or isolation between restaurants. The commercial service
+also needs validated camera capacity, failure recovery and service availability.
+The EC2 component is the compute foundation for that work, not a completed
+multi-customer subscription platform.
+
+### Why the demo uses Lambda
+
+The hosted recording demo lets prospective customers try table setup, inference
+and the dashboard. Its compact YOLOX Tiny model is included in the Lambda image
+and processes frame batches on demand, so the demonstration does not depend on
+keeping an EC2 instance online. Videos, setup and results stay in the browser tab.
+It demonstrates the workflow using recordings; it does not maintain a customer's
+live camera session. See [the demo rationale](STATELESS_DEPLOYMENT.md#why-the-demo-uses-lambda).
+
+## Shared processing
+
 TurnTable has one CPU evidence pipeline and one shared decision core. Recorded
 analysis, replay and live monitoring use that core with different clocks and
 transport adapters.
+
+The [stateless recording deployment](STATELESS_DEPLOYMENT.md) adds a browser-owned
+transport: decoded frames and an explicit JSON checkpoint go to a fresh Lambda
+invocation; observations and the next checkpoint return to that browser. The
+browser retains source media, calibration and results and runs the shared decision
+core. Separate bounded assessment requests send only the table/frame pairs chosen
+by that core. Python tracking, surface monitoring, rectification and reference
+comparison remain shared; no cross-request server session or media store is used.
+
+Recordings use one current format. The source kind distinguishes browser-local
+media from server-processed media without selecting a different schema or policy.
+Frame endpoints live under `/frames`, with no numbered API routes. Model,
+configuration, build and setup identities still prevent stale evidence from being
+applied to a different recording or calibration.
 
 ```mermaid
 flowchart LR
@@ -48,10 +115,10 @@ Draft references, table proposals and edited counts do not imply approval. Saves
 use source revisions. Failed saves retain user edits; conflicts reject stale
 writes. Floor-plan changes invalidate map review independently of visual approval.
 
-## Runtime and storage
+## Shared-workspace runtime and storage
 
 The browser communicates with relative `/api` URLs and chooses WSS on HTTPS.
-In the hosted configuration, Caddy authenticates the complete site before
+In the EC2 configuration, Caddy authenticates the complete site before
 forwarding HTTP, media and WebSocket traffic to the private application container.
 All authenticated users share the same workspace.
 
@@ -74,8 +141,10 @@ Source media transfer uses bounded Range requests with length, Content-Range and
 ETag checks. Verification can still require substantial browser memory for large
 recordings. The upload ceiling is not a capacity guarantee.
 
-Examples, test fixtures and runtime data have separate purposes. The example
-folders start empty; tests do not depend on them. Models are downloaded and
+Examples, test fixtures and runtime data have separate purposes. The bundled
+[demo recording and clean reference](../examples/demo/) are optional user inputs;
+tests do not depend on them. Only `examples/videos/` and `examples/mappings/`
+start empty, for your own inputs. Models are downloaded and
 verified separately. The [deployment guide](DEPLOYMENT.md) explains their mounts
 and the [validation guide](VALIDATION.md) separates software evidence from real
 restaurant performance.

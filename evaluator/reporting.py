@@ -137,7 +137,7 @@ def write_report(report: dict, output: Path) -> None:
             if runtime.get("process_log"):
                 lines.append(f'[Process log](<{runtime["process_log"]}>)')
         if metrics:
-            if metrics.get("policy") == "automatic_v2":
+            if metrics.get("policy") == "automatic":
                 lines += [
                     "",
                     f'Parallel state agreement: people {percentage(metrics.get("people_agreement"))}; surface {percentage(metrics.get("surface_agreement"))}.',
@@ -241,7 +241,7 @@ def write_report(report: dict, output: Path) -> None:
             lines.append("")
         if runtime.get("telemetry"):
             telemetry = runtime["telemetry"]
-            if telemetry.get("schema_version") == 2:
+            if telemetry.get("policy") == "automatic":
                 counts = telemetry.get("counts", {})
                 lines += [
                     "",

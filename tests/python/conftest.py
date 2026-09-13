@@ -65,9 +65,10 @@ def bundle(legacy_bundle):
     import json
 
     result = deepcopy(bundle)
+    result.pop("schema_version")
+    result["video"]["source_kind"] = "processed_file"
     result.update(
-        schema_version=2,
-        policy="automatic_v2",
+        policy="automatic",
         staff_events=[],
         assessment_requests=[],
         assessments=[],
@@ -116,11 +117,9 @@ def bundle(legacy_bundle):
 
 @pytest.fixture
 def labels(bundle):
-    v2_bundle = bundle
     return {
-        "schema_version": 2,
-        "policy": "automatic_v2",
-        "video_sha256": v2_bundle["video"]["sha256"],
+        "policy": "automatic",
+        "video_sha256": bundle["video"]["sha256"],
         "provenance": "synthetic_fixture",
         "intervals": [
             {

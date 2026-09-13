@@ -1,0 +1,13 @@
+{
+  "body_bytes": 4194304,
+  "frames": 8,
+  "width": 1280,
+  "height": 720,
+  "image_bytes": 2097152,
+  "tables": 32,
+  "tracks": 256,
+  "checkpoint_bytes": 1048576,
+  "upload_bytes": 1000000000,
+  "duration_s": 600,
+  "sample_hz": 8
+}

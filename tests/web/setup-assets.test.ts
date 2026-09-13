@@ -208,7 +208,7 @@ describe("uploaded setup image contracts and evidence verification", () => {
       expect(() => validateBundle(bundle)).toThrow(/setup review/);
     },
   );
-  it("preserves existing v2 references without setup metadata", async () => {
+  it("validates video-frame references without uploaded-image metadata", async () => {
     const { bundle, readAsset } = await assetFixture();
     delete bundle.floor_plan;
     delete bundle.tables[0].setup_review;

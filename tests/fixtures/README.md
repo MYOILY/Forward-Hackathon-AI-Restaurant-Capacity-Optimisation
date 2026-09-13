@@ -18,4 +18,6 @@ restaurant data. They are excluded from the production image.
 
 Tests author expected events and comparison outcomes independently of production
 replay. The application never reads these directories at startup. User-provided
-videos and floor-plan images belong in the separate empty `examples` folders.
+videos and floor-plan images can be selected from any local folder. The optional
+`examples/videos` and `examples/mappings` folders start empty; the bundled demo
+inputs live separately under `examples/demo`.

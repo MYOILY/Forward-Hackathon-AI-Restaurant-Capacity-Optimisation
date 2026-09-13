@@ -34,7 +34,7 @@ export function withMonitoring(
         ...table,
         monitoring_enabled:
           choices[key] ??
-          savedMonitoring(key) ??
+          (bundle.video.source_kind === "browser_file" ? undefined : savedMonitoring(key)) ??
           table.monitoring_enabled ??
           true,
       };

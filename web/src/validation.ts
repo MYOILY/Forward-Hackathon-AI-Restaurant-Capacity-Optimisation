@@ -3,9 +3,12 @@ import type {
   Box,
   ExpectedObject,
   ImageAsset,
+  FrameCapture,
+  Observation,
   StaffEvent,
   SurfaceAssessment,
 } from "../../shared/contracts";
+import { FRAME_BATCH_LIMITS } from "../../shared/frame-batch-contracts";
 import {
   isObjectBaseline,
   isObjectSurfaceEvidence,
@@ -43,6 +46,20 @@ const box = (v: unknown): v is Box =>
   v[1] < v[3];
 const hash = (v: unknown): v is string =>
   typeof v === "string" && /^[a-fA-F0-9]{64}$/.test(v);
+export function validateFrameCapture(value: unknown): asserts value is FrameCapture {
+  if (!object(value) || !Number.isSafeInteger(value.sample_index) ||
+      (value.sample_index as number) < 0 || !finite(value.t) || value.t < 0 ||
+      !hash(value.sha256) || !Number.isSafeInteger(value.width) ||
+      !Number.isSafeInteger(value.height) || (value.width as number) < 1 ||
+      (value.height as number) < 1 || (value.width as number) > 1280 ||
+      (value.height as number) > 720)
+    fail("Invalid browser frame capture identity.");
+}
+export function sameCapture(a: FrameCapture | undefined, b: FrameCapture | undefined): boolean {
+  return a === undefined && b === undefined || !!a && !!b &&
+    a.sample_index === b.sample_index && a.t === b.t && a.sha256 === b.sha256 &&
+    a.width === b.width && a.height === b.height;
+}
 /** Uploaded source photos and floor plans are bounded, local, content-addressed images. */
 export function validateImageAsset(
   value: unknown,
@@ -340,11 +357,111 @@ export function validateStaffEvents(
       fail("Invalid staff action or source.");
   }
 }
+/** Validate a single append without revalidating the entire recording history. */
+export function validateObservation(
+  observation: unknown,
+  tableIds: Set<string>,
+  duration: number,
+  previous = -Infinity,
+  previousFrame = -1,
+  captureDimensions?: { width: number; height: number },
+): asserts observation is Observation {
+    if (
+      !object(observation) ||
+      !finite(observation.t) ||
+      observation.t < 0 ||
+      observation.t > duration ||
+      observation.t <= previous
+    )
+      fail(
+        "Observation timestamps must increase without duplicates and stay inside the video.",
+      );
+    if (
+      !Number.isSafeInteger(observation.frame_index) ||
+      (observation.frame_index as number) < 0 ||
+      typeof observation.valid !== "boolean" ||
+      !object(observation.tables)
+    )
+      fail("Invalid observation metadata.");
+    if (
+      Object.keys(observation.tables).length !== tableIds.size ||
+      Object.keys(observation.tables).some((id) => !tableIds.has(id))
+    )
+      fail("Observation contains missing or unknown table IDs.");
+    for (const presence of Object.values(observation.tables))
+      if (!["present", "absent", "uncertain"].includes(presence as string))
+        fail("Invalid presence observation.");
+    if (
+      !observation.valid &&
+      Object.values(observation.tables).some(
+        (presence) => presence !== "uncertain",
+      )
+    )
+      fail("Invalid analysis must mark every table uncertain.");
+    if (!Array.isArray(observation.detections))
+      fail("Detections must be an array.");
+    for (const detection of observation.detections as unknown[])
+      if (
+        !object(detection) ||
+        !Number.isSafeInteger(detection.class_id) ||
+        (detection.class_id as number) < 0 ||
+        !unit(detection.score) ||
+        !box(detection.box)
+      )
+        fail("Invalid detection coordinates or score.");
+    {
+      if (
+        !Array.isArray(observation.tracks) ||
+        !object(observation.surface) ||
+        Object.keys(observation.surface).length !== tableIds.size ||
+        Object.keys(observation.surface).some((id) => !tableIds.has(id))
+      )
+        fail("Analysis requires tracks and surface evidence for every table.");
+      const trackIds = new Set<string>();
+      for (const track of observation.tracks as unknown[]) {
+        if (
+          !object(track) ||
+          typeof track.track_id !== "string" ||
+          !track.track_id ||
+          trackIds.has(track.track_id) ||
+          !box(track.box) ||
+          !unit(track.score) ||
+          typeof track.observed !== "boolean" ||
+          (track.table_id !== null &&
+            !tableIds.has(track.table_id as string)) ||
+          !Array.isArray(track.candidate_table_ids) ||
+          track.candidate_table_ids.some((id) => !tableIds.has(id as string))
+        )
+          fail("Invalid or duplicate track evidence.");
+        trackIds.add(track.track_id);
+      }
+      for (const evidence of Object.values(observation.surface))
+        if (
+          !object(evidence) ||
+          ![true, false, null].includes(evidence.visible as boolean | null) ||
+          typeof evidence.changed !== "boolean" ||
+          (evidence.camera_moved !== undefined &&
+            typeof evidence.camera_moved !== "boolean")
+        )
+          fail("Invalid surface visibility evidence.");
+    }
+
+  if (captureDimensions) {
+    validateFrameCapture(observation.capture);
+    if (observation.capture.t !== observation.t ||
+        observation.capture.sample_index !== observation.frame_index ||
+        observation.frame_index <= previousFrame ||
+        observation.capture.width !== captureDimensions.width ||
+        observation.capture.height !== captureDimensions.height)
+      fail("Browser observation capture does not match its sample or processing dimensions.");
+  }
+}
+
 export function validateBundle(value: unknown): asserts value is Bundle {
   if (
     !object(value) ||
-    value.schema_version !== 2 ||
-    value.policy !== "automatic_v2"
+    "schema_version" in value ||
+    value.policy !== "automatic"
   )
     fail(
       "This recording uses an unsupported analysis format. Reprocess the original video with TurnTable to open it.",
@@ -358,16 +475,24 @@ export function validateBundle(value: unknown): asserts value is Bundle {
   const video = value.video;
   if (
     !object(video) ||
+    !["browser_file", "processed_file"].includes(video.source_kind as string) ||
     !isSafeMediaPath(video.file) ||
     typeof video.sha256 !== "string" ||
     !/^[a-fA-F0-9]{64}$/.test(video.sha256)
   )
-    fail("Invalid video media path or SHA-256 hash.");
+    fail("Invalid video source kind, media path or SHA-256 hash.");
   for (const key of ["width", "height", "fps", "duration_s"])
     if (!finite(video[key]) || (video[key] as number) <= 0)
       fail(`Invalid video ${key}.`);
   if (!Number.isInteger(video.width) || !Number.isInteger(video.height))
     fail("Video dimensions must be integers.");
+  if (video.source_kind === "browser_file" && (
+      video.timestamp_source !== "mp4_presentation" ||
+      video.fps_kind !== "measured_average" ||
+      !Number.isSafeInteger(video.processing_width) || !Number.isSafeInteger(video.processing_height) ||
+      (video.processing_width as number) < 1 || (video.processing_width as number) > 1280 ||
+      (video.processing_height as number) < 1 || (video.processing_height as number) > 720))
+    fail("Browser recordings require original-file identity, measured frame rate and processing dimensions.");
   const duration = video.duration_s as number;
   if (value.original_scene !== null && !isSafeMediaPath(value.original_scene))
     fail("Invalid original scene path.");
@@ -522,8 +647,8 @@ export function validateBundle(value: unknown): asserts value is Bundle {
       fail(`Missing reference content hash for ${table.id}.`);
     if (object(table.reference)) {
       validateReferenceImageSource(table.reference, {
-        width: video.width as number,
-        height: video.height as number,
+        width: (video.source_kind === "browser_file" ? video.processing_width : video.width) as number,
+        height: (video.source_kind === "browser_file" ? video.processing_height : video.height) as number,
       });
     }
     if (
@@ -545,93 +670,33 @@ export function validateBundle(value: unknown): asserts value is Bundle {
     )
       fail(`Invalid expected-object baseline for ${table.id}.`);
   }
-  if (!Array.isArray(value.observations))
-    fail("Observations must be an array.");
-  let previous = -Infinity;
+  if (!Array.isArray(value.observations)) fail("Observations must be an array.");
+  let previous = -Infinity, previousFrame = -1;
   for (const observation of value.observations as unknown[]) {
-    if (
-      !object(observation) ||
-      !finite(observation.t) ||
-      observation.t < 0 ||
-      observation.t > duration ||
-      observation.t <= previous
-    )
-      fail(
-        "Observation timestamps must increase without duplicates and stay inside the video.",
-      );
+    validateObservation(observation, tableIds, duration, previous, previousFrame,
+      video.source_kind === "browser_file" ? { width: video.processing_width as number, height: video.processing_height as number } : undefined);
     previous = observation.t;
-    if (
-      !Number.isSafeInteger(observation.frame_index) ||
-      (observation.frame_index as number) < 0 ||
-      typeof observation.valid !== "boolean" ||
-      !object(observation.tables)
-    )
-      fail("Invalid observation metadata.");
-    if (
-      Object.keys(observation.tables).length !== tableIds.size ||
-      Object.keys(observation.tables).some((id) => !tableIds.has(id))
-    )
-      fail("Observation contains missing or unknown table IDs.");
-    for (const presence of Object.values(observation.tables))
-      if (!["present", "absent", "uncertain"].includes(presence as string))
-        fail("Invalid presence observation.");
-    if (
-      !observation.valid &&
-      Object.values(observation.tables).some(
-        (presence) => presence !== "uncertain",
-      )
-    )
-      fail("Invalid analysis must mark every table uncertain.");
-    if (!Array.isArray(observation.detections))
-      fail("Detections must be an array.");
-    for (const detection of observation.detections as unknown[])
-      if (
-        !object(detection) ||
-        !Number.isSafeInteger(detection.class_id) ||
-        (detection.class_id as number) < 0 ||
-        !unit(detection.score) ||
-        !box(detection.box)
-      )
-        fail("Invalid detection coordinates or score.");
-    {
-      if (
-        !Array.isArray(observation.tracks) ||
-        !object(observation.surface) ||
-        Object.keys(observation.surface).length !== tableIds.size ||
-        Object.keys(observation.surface).some((id) => !tableIds.has(id))
-      )
-        fail("Analysis requires tracks and surface evidence for every table.");
-      const trackIds = new Set<string>();
-      for (const track of observation.tracks as unknown[]) {
-        if (
-          !object(track) ||
-          typeof track.track_id !== "string" ||
-          !track.track_id ||
-          trackIds.has(track.track_id) ||
-          !box(track.box) ||
-          !unit(track.score) ||
-          typeof track.observed !== "boolean" ||
-          (track.table_id !== null &&
-            !tableIds.has(track.table_id as string)) ||
-          !Array.isArray(track.candidate_table_ids) ||
-          track.candidate_table_ids.some((id) => !tableIds.has(id as string))
-        )
-          fail("Invalid or duplicate track evidence.");
-        trackIds.add(track.track_id);
-      }
-      for (const evidence of Object.values(observation.surface))
-        if (
-          !object(evidence) ||
-          ![true, false, null].includes(evidence.visible as boolean | null) ||
-          typeof evidence.changed !== "boolean" ||
-          (evidence.camera_moved !== undefined &&
-            typeof evidence.camera_moved !== "boolean")
-        )
-          fail("Invalid surface visibility evidence.");
-    }
+    previousFrame = observation.frame_index;
   }
   validateStaffEvents(value.staff_events, tableIds, duration);
   if (!object(value.analysis)) fail("Analysis metadata must be an object.");
+  if (
+    value.analysis.processing_mode === "stateless" &&
+    video.source_kind !== "browser_file"
+  )
+    fail("Stateless analysis requires browser-file video provenance.");
+  if (video.source_kind === "browser_file") {
+    const analysis = value.analysis;
+    if (
+      analysis.processing_mode !== "stateless" ||
+      !["run_id", "build_id"].every((key) => typeof analysis[key] === "string" &&
+        (analysis[key] as string).length > 0 && (analysis[key] as string).length <= 256) ||
+      !Number.isSafeInteger(analysis.setup_revision) || (analysis.setup_revision as number) < 0 ||
+      !hash(analysis.model_sha256) || !hash(analysis.config_sha256) || analysis.sample_hz !== FRAME_BATCH_LIMITS.sample_hz ||
+      !finite(analysis.first_timestamp) || !finite(analysis.rotation)
+    )
+      fail("Browser recordings require run, setup, model, configuration and media timing identities.");
+  }
   if (
     demoTiming
       ? value.analysis.timing_profile !== "demo_fast_3x"
@@ -654,6 +719,7 @@ export function validateBundle(value: unknown): asserts value is Bundle {
         fail("Assessments must be an array.");
       for (const assessment of value.assessments) {
         validateAssessment(assessment);
+        if (video.source_kind === "browser_file") validateFrameCapture(assessment.capture);
         if (
           assessment.timing_profile !==
           (demoTiming ? "demo_fast_3x" : undefined)
@@ -696,6 +762,13 @@ export function validateBundle(value: unknown): asserts value is Bundle {
         )
           fail("Invalid assessment request identity hashes.");
         validateSurfaceIdentity(request);
+        if (video.source_kind === "browser_file") {
+          validateFrameCapture(request.capture);
+          const observed = (value.observations as Observation[]).find(o =>
+            o.t === request.t && o.frame_index === request.frame_index);
+          if (!sameCapture(observed?.capture, request.capture))
+            fail("Assessment request does not match the encoded browser frame.");
+        }
         const table = (value.tables as unknown as Bundle["tables"]).find(
           (table) => table.id === request.table_id,
         );
@@ -746,7 +819,8 @@ export function validateBundle(value: unknown): asserts value is Bundle {
       "config_sha256",
       "timing_profile",
     ] as const;
-    if (!request || keys.some((key) => request[key] !== result[key]))
+    if (!request || keys.some((key) => request[key] !== result[key]) ||
+        !sameCapture(request.capture, result.capture))
       fail("Assessment result does not match its recorded request.");
   }
 }

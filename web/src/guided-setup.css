@@ -325,9 +325,25 @@
   display: flex;
   gap: 12px;
   align-items: center;
-  margin-top: 24px;
+  margin-left: auto;
   color: var(--text-secondary);
   font-size: 12px;
+}
+.guided-editor .button.guided-delete-table:not(:disabled) {
+  color: #a32424;
+  border-color: #a32424;
+}
+.guided-delete-notice {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
 }
 .guided-footer {
   display: flex;

@@ -1,8 +1,18 @@
 # Validate the application
 
 Tests use controlled inputs under [tests/fixtures](../tests/fixtures/), separate
-from the empty user example folders. A passing simulated test is software
+from the bundled [demo](../examples/demo/) and the initially empty user-input
+folders `examples/videos/` and `examples/mappings/`. A passing simulated test is software
 evidence, not proof of physical-camera throughput or restaurant accuracy.
+
+For the stateless recording deployment, add
+`tests/python/test_stateless_frames.py` and
+`tests/python/test_stateless_infra.py` to focused checks. They exercise portable
+checkpoint parity, request bounds, source isolation, retries and deployment
+resource constraints. The ten-client mock workload does not contact AWS. See
+[the stateless validation steps](STATELESS_DEPLOYMENT.md#validate-before-provisioning)
+and [load/acceptance procedure](STATELESS_DEPLOYMENT.md#load-and-acceptance-checks)
+for separate real-model, Docker, deployed burst and 1 GB/600-second browser checks.
 
 ## Reproducible software checks
 
@@ -37,7 +47,8 @@ provenance and integrity tests remain even where old-format scenarios were remov
 
 The small identified test images are included under `tests/fixtures`. Download
 the official detector models separately; weights are not included in the
-repository or release image:
+repository or EC2 application image. The separate Lambda image downloads and
+verifies Tiny at build time, then bakes it into that image:
 
 ```sh
 .venv/bin/python -m processor download-model --model tiny --model-dir models
@@ -81,16 +92,57 @@ proxy boundary; public certificate issuance still requires the deployed domain.
 
 ## Evaluate your restaurant footage
 
-Record a main clip and a distinct held-out clip. Label original footage
-independently of detector outputs, with physical occupancy, observable periods
+This is an advanced workflow for measuring performance. You do not need labels
+or an evaluation run to follow the [demo walkthrough](SETUP.md#try-the-demo).
+
+Record a main clip and a distinct held-out clip. Label the source video referenced
+by each bundle independently of detector outputs, with physical occupancy, observable periods
 and expected service outcomes. Freeze configuration before evaluating the held-out
 recording. Approval of setup images does not supply ground truth.
 
+1. Upload and review each recording through the shared-workspace UI, then run
+   **Analyze recording**. Each completed source has a `bundle.json` and referenced
+   assets under `data/sources/SOURCE_ID/` by default. See
+   [finding a saved source](REFERENCE.md#reanalyze-a-reviewed-recording).
+2. Inspect the video referenced by each bundle. For normalized uploads, use that
+   source timeline and hash. Author labels independently of predictions, following
+   the [label format and example](REFERENCE.md#evaluation-label-format).
+3. Save the two annotation files as `data/main-labels.json` and
+   `data/heldout-labels.json`. Replace `SOURCE_ID` in this structure-only check
+   with the matching source ID, and repeat it for the held-out source and labels:
+
 ```sh
-.venv/bin/python -m evaluator --bundle data/main-bundle --labels data/main-labels.json --held-out-bundle data/heldout-bundle --held-out-labels data/heldout-labels.json --models tiny --model-dir models --out artifacts/evaluation
+.venv/bin/python - data/sources/SOURCE_ID data/main-labels.json <<'PY'
+import json
+import sys
+from pathlib import Path
+from evaluator.labels import validate_labels
+from processor.io import validate_bundle
+
+path = Path(sys.argv[1])
+bundle_path = path / "bundle.json" if path.is_dir() else path
+bundle = json.loads(bundle_path.read_text())
+labels = json.loads(Path(sys.argv[2]).read_text())
+validate_bundle(bundle)
+validate_labels(labels, bundle)
+print("Bundle and label structure passed; annotation accuracy was not checked.")
+PY
 ```
 
-Paths above are user-provided outputs and independent labels. The evaluator
+After both checks pass, run the evaluator. Replace `MAIN_SOURCE_ID` and
+`HELDOUT_SOURCE_ID` with your two completed source IDs:
+
+```sh
+.venv/bin/python -m evaluator \
+  --bundle data/sources/MAIN_SOURCE_ID --labels data/main-labels.json \
+  --held-out-bundle data/sources/HELDOUT_SOURCE_ID --held-out-labels data/heldout-labels.json \
+  --models tiny --model-dir models --out output/evaluation
+```
+
+`--bundle` and `--held-out-bundle` accept either a source directory or its
+`bundle.json` file. Keep each bundle's referenced assets in place. Paths above
+are user-provided outputs and independent labels; no labels for real recordings
+ship with the repository. The evaluator
 checks required software/model layers, replays the production decision engine,
 audits evidence independently and runs repeated main trials plus held-out
 evaluation. Run benchmarks exclusively, without builds or other inference tests
@@ -111,8 +163,11 @@ issuance on the actual domain. See [Deployment](DEPLOYMENT.md).
 
 ## Verification record
 
-These checks ran from this repository with its own installed dependencies and
-test fixtures:
+The following historical checks ran before the stateless deployment and
+single-format simplification, using this repository's installed dependencies and
+test fixtures. They do not establish validation of the current checkout. See
+[stateless verification record](#stateless-verification-record) for its
+dated results and rerun the commands above after changes.
 
 | Check | Result |
 | --- | --- |
@@ -138,10 +193,87 @@ workflow is committed to run the build elsewhere. Public certificate
 issuance, EC2 performance, physical cameras and independently labelled restaurant
 footage remain deployment or field-validation work.
 
+## Documentation walkthrough check
+
+On 14 September 2026, the revised [demo walkthrough](SETUP.md#try-the-demo) was
+followed in desktop Chrome against an isolated native service on macOS ARM using
+the existing installed dependencies and verified Tiny model. It completed video
+upload, clean-photo selection, schematic selection, the four review steps for one
+table, setup approval, full recorded analysis and opening completed playback.
+The screenshots in the guide come from that run with the bundled demo.
+
+The 40 existing deployment-configuration tests passed. Local documentation
+links/anchors/images, shell-block syntax, the public environment template and the
+synthetic label example were also checked. This was not a fresh dependency
+installation, an AWS deployment, a Linux container run or an accuracy evaluation.
+The older verification records below retain their original scope.
+
+## Stateless verification record
+
+The following record was moved from the stateless deployment guide during the
+documentation review. It preserves the original results and limitations; it is
+not a fresh execution of those checks. Current procedures remain in
+[Stateless deployment](STATELESS_DEPLOYMENT.md#load-and-acceptance-checks).
+
+Before the single-format simplification, local model-backed checks ran against
+the ten-slot HTTP adapter on macOS ARM,
+using two generated 160 × 90 test frames per request (about 117 KB of JSON), two
+checkpoint batches per client, and a duplicate first request per client:
+
+| Concurrent clients | Completed clients | HTTP 200 / retried 429 | Total wall time |
+| --- | --- | --- | --- |
+| 10 | 10 | 30 / 1 | 2.510 s |
+| 25 | 25 | 75 / 21 | 2.486 s |
+
+Both runs verified run/frame/checkpoint isolation and identical-request retry
+results using the actual Tiny model. They exercised small synthetic images; warm
+model state and machine load can differ between runs, so these timings cannot be
+extrapolated to full recordings or compared as a scaling benchmark. The offline
+tests also exercised a 100-client burst with injected detections and real
+checkpoint/tracker code.
+
+Current-format verification on 14 September 2026 passed 363 web unit tests,
+455 Python tests (including 19 infrastructure/load-harness tests), all 81 local
+browser cases and all five stateless browser cases. The stateless journey used
+the real Tiny model through `/frames`. Type checking, both frontend build modes,
+offline template validation and repository documentation/boundary checks passed.
+The Python count combines the main run with successful reruns of five cases
+interrupted by disk exhaustion. The browser checks also fixed a test helper to
+wait for replacement video metadata before seeking. Generated video fixtures use
+separate temporary directories to avoid cross-suite cleanup races.
+
+Five actual-model Python integration tests were excluded. Two existing
+live-camera scheduling assertions still expect one inference call but receive
+two; they also failed before this format change, with the original validation
+module restored. They remain separate local-mode validation issues. The
+load-harness tests cover isolated clients and a synthetic 100-client burst using
+the current `/frames` contract. The earlier real-model load timings above were
+recorded before the API-path rename and are not current AWS measurements.
+
+Local protocol/algorithm tests, template checks and load runs do not establish
+AWS performance. On 14 September 2026, AWS validated both CloudFormation
+templates, including the optional shared-concurrency configuration. A read-only
+check in `ap-southeast-2` confirmed a regional quota of 10 and an unreserved pool
+of 10, which cannot support the default reservation. Preflight passed with
+`--use-unreserved-concurrency`; function memory was not exposed by the quota API
+and must still be accepted at deployment. The check excludes the separate
+MicroVM memory quota and converts known function-memory units before comparing.
+After switching provisioning to SAM, both templates passed `sam validate --lint`
+with SAM CLI 1.166.1 and AWS `validate-template`. All 80 infrastructure/load-harness
+tests passed after making memory and inference threads configurable, including
+quota comparisons against the selected memory and SAM parameter propagation.
+The image repository was provisioned and `build-push` completed with the verified
+container smoke check and an immutable release file. The first application
+deployment failed because AWS imposed a 3,008 MB function-memory limit that was
+not exposed by Service Quotas. The revised template and read-only preflight pass
+with defaults of 3,008 MB and two threads. Application provisioning at those
+settings, deployed load tests and longest-recording acceptance remain unverified.
+
 ## Further example material required
 
 This repository ships one unlabelled [demo clip](../examples/demo/) and no
-mappings or labels, so every result above rests on synthetic fixtures and
+venue mappings or real-recording labels. The documentation's synthetic label
+example only illustrates file structure. Every result above rests on synthetic fixtures and
 self-recorded material. Those establish that
 the pipeline executes; they do not establish restaurant accuracy. The following
 example material is still required before any accuracy claim is made:

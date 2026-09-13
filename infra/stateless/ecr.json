@@ -1,0 +1,32 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "TurnTable stateless image repository; stores application images only.",
+  "Parameters": {
+    "ApplicationStack": {"Type": "String", "AllowedPattern": "[a-z][a-z0-9-]{0,39}"}
+  },
+  "Resources": {
+    "Images": {
+      "Type": "AWS::ECR::Repository",
+      "Properties": {
+        "RepositoryName": {"Fn::Sub": "${ApplicationStack}-frames"},
+        "ImageTagMutability": "IMMUTABLE",
+        "ImageScanningConfiguration": {"ScanOnPush": true},
+        "EncryptionConfiguration": {"EncryptionType": "AES256"},
+        "RepositoryPolicyText": {
+          "Version": "2012-10-17",
+          "Statement": [{
+            "Sid": "LambdaImageRetrieval",
+            "Effect": "Allow",
+            "Principal": {"Service": "lambda.amazonaws.com"},
+            "Action": ["ecr:BatchGetImage", "ecr:GetDownloadUrlForLayer"],
+            "Condition": {"ArnLike": {"aws:SourceArn": {"Fn::Sub": "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${ApplicationStack}-frames"}}}
+          }]
+        }
+      }
+    }
+  },
+  "Outputs": {
+    "RepositoryUri": {"Value": {"Fn::GetAtt": ["Images", "RepositoryUri"]}},
+    "RepositoryName": {"Value": {"Ref": "Images"}}
+  }
+}

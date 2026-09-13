@@ -1,5 +1,6 @@
 import { ObjectEvidence } from "./ObjectEvidence";
 import { TableOverlayLabel } from "./TableOverlayLabel";
+import { tableOverlayGeometry } from "./table-overlay-geometry";
 import { useEffect, useRef, useState } from "react";
 import type {
   Observation,
@@ -495,18 +496,20 @@ export function LiveDashboard({
                 viewBox={`0 0 ${frame.width} ${frame.height}`}
               >
                 {enabled.map((item) => {
-                  const [x1, y1, x2, y2] = item.video_region;
+                  const geometry = tableOverlayGeometry(
+                    item,
+                    frame.width,
+                    frame.height,
+                  );
+                  if (!geometry) return null;
                   return (
                     <g
                       key={item.id}
                       className="video-region"
                       onClick={() => setSelected(item.id)}
                     >
-                      <rect
-                        x={x1 * frame.width}
-                        y={y1 * frame.height}
-                        width={(x2 - x1) * frame.width}
-                        height={(y2 - y1) * frame.height}
+                      <polygon
+                        points={geometry.points}
                         fill="none"
                         stroke={colors[snapshot.tables[item.id].status]}
                         strokeWidth="3"

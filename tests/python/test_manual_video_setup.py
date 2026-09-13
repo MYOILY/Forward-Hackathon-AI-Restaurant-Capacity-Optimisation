@@ -99,7 +99,8 @@ def test_manual_video_normalizes_and_saves_unapproved_drawing_without_models(
         source_path = "/api/sources/" + source["id"]
         directory = data_root / source["id"]
         layout = json.loads((directory / "layout.json").read_text())
-        assert layout["schema_version"] == 2 and layout["policy"] == "automatic_v2"
+        assert "schema_version" not in layout and layout["policy"] == "automatic"
+        assert layout["video"]["source_kind"] == "processed_file"
         assert (
             layout["provenance"] == "real_video" and layout["setup_mode"] == "guided_v1"
         )

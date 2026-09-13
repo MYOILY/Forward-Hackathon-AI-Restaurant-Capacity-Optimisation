@@ -32,6 +32,13 @@ function feed(
   return reply!;
 }
 describe("independent live source-time and availability contract", () => {
+  it("uses the current live configuration without protocol selection", () => {
+    const config = liveConfig();
+    expect(config).not.toHaveProperty("protocol_version");
+    expect(() => createLiveSession(config)).not.toThrow();
+    expect(() => createLiveSession({ ...config, protocol_version: 1 } as typeof config))
+      .toThrow(/live session identity/);
+  });
   it("M01 detection-only never requests surface inference or invents cleared readiness", () => {
     const config = liveConfig(true);
     const session = createLiveSession(config);

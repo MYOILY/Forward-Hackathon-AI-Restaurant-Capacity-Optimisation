@@ -184,10 +184,10 @@ def validate_monitoring_scope(labels, bundle):
 
 def validate_labels(labels: dict, bundle: dict) -> None:
     if (
-        labels.get("schema_version") != 2
-        or labels.get("policy") != "automatic_v2"
-        or bundle.get("schema_version") != 2
-        or bundle.get("policy") != "automatic_v2"
+        "schema_version" in labels
+        or labels.get("policy") != "automatic"
+        or "schema_version" in bundle
+        or bundle.get("policy") != "automatic"
     ):
         raise ValueError(
             "Unsupported labels or bundle format; reprocess the recording and label the current output."

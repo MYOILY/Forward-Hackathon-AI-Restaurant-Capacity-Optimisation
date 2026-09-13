@@ -380,7 +380,7 @@ def _score_predictions(bundle, labels, segments, snapshots, final_snapshot):
         ),
     )
     return {
-        "policy": "automatic_v2",
+        "policy": "automatic",
         "passed": all(gates.values()),
         "gates": gates,
         "state_agreement": ratio(service_ok),

@@ -117,12 +117,12 @@ def manual_layout(canonical, out_dir):
     frame, timestamp, frame_index, metadata = reference_frame(canonical, 0)
     _save_png(out_dir / "original_scene.png", frame)
     return {
-        "schema_version": 2,
-        "policy": "automatic_v2",
+        "policy": "automatic",
         "provenance": "real_video",
         "setup_mode": "guided_v1",
         "calibration_confirmed": False,
         "video": {
+            "source_kind": "processed_file",
             "file": canonical.relative_to(out_dir).as_posix(),
             "sha256": sha256_file(canonical),
             **metadata,

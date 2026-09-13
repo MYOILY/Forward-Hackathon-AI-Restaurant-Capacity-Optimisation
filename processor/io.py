@@ -155,12 +155,11 @@ def validate_layout(layout: dict) -> None:
     """Validate the common layout/bundle fields; no filesystem is accessed."""
     _require(
         isinstance(layout, dict)
-        and type(layout.get("schema_version")) is int
-        and layout["schema_version"] == 2,
+        and "schema_version" not in layout,
         "Unsupported bundle format. Reprocess the recording with the current application.",
     )
     _require(
-        layout.get("policy") == "automatic_v2",
+        layout.get("policy") == "automatic",
         "Unsupported processing policy. Reprocess the recording with the current application.",
     )
     if layout.get("floor_plan") is not None:
@@ -180,6 +179,7 @@ def validate_layout(layout: dict) -> None:
         )
     video = layout.get("video")
     _require(isinstance(video, dict), "Missing video metadata")
+    _require(video.get("source_kind") == "processed_file", "Unsupported video source kind")
     _require(is_safe_media_path(video.get("file")), "Invalid video media path")
     _require(
         isinstance(video.get("sha256"), str)

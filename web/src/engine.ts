@@ -14,6 +14,9 @@ import {
   validateAssessment,
   validateBundle,
   validateStaffEvents,
+  validateObservation,
+  validateFrameCapture,
+  sameCapture,
 } from "./validation";
 import { createRuleCore, type RuleMemory } from "./rule-core";
 import {
@@ -105,10 +108,13 @@ export function createReplaySession(
         baseline_sha256: baseline.baseline_sha256,
         config_sha256: baseline.config_sha256,
         ...(timingProfile ? { timing_profile: timingProfile } : {}),
+        ...(observation.capture ? { capture: { ...observation.capture } } : {}),
       };
       const recorded = bundle.assessment_requests?.find((request) =>
         Object.entries(identity).every(
-          ([key, value]) => request[key as keyof AssessmentRequest] === value,
+          ([key, value]) => key === "capture"
+            ? sameCapture(request.capture, observation.capture)
+            : request[key as keyof AssessmentRequest] === value,
         ),
       );
       const request: AssessmentRequest = {
@@ -169,7 +175,7 @@ export function createReplaySession(
           result[key as keyof SurfaceAssessment] !==
           request[key as keyof AssessmentRequest],
       )
-    )
+    || !sameCapture(result.capture, request.capture))
       reason = "Assessment source identity does not match its request.";
     else if (
       usesObjectSurface(m.table) &&
@@ -304,10 +310,20 @@ export function createReplaySession(
   }
   initialize();
   return {
+    appendObservation(observation) {
+      const previous = bundle.observations.at(-1);
+      validateObservation(observation, tableIds, bundle.video.duration_s,
+        previous?.t ?? -Infinity, previous?.frame_index ?? -1,
+        bundle.video.source_kind === "browser_file" ? { width: bundle.video.processing_width!, height: bundle.video.processing_height! } : undefined);
+      if (observation.t <= cursor)
+        throw new Error("Append observations before advancing beyond their timestamp.");
+      bundle.observations.push(structuredClone(observation));
+    },
     advanceTo,
     getAssessmentRequests: () => requests.map((request) => ({ ...request })),
     submitAssessment(result) {
       validateAssessment(result);
+      if (bundle.video.source_kind === "browser_file") validateFrameCapture(result.capture);
       if (!Number.isFinite(cursor))
         throw new Error(
           "Advance to an assessment request before submitting a result.",

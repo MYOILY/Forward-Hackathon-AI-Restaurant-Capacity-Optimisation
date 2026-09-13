@@ -35,7 +35,9 @@ export async function verifyBundleAssets(
   }
   for (const table of bundle.tables)
     if (table.reference) {
-      validateReferenceImageSource(table.reference, bundle.video);
+      validateReferenceImageSource(table.reference, bundle.video.source_kind === "browser_file" ? {
+        width: bundle.video.processing_width!, height: bundle.video.processing_height!,
+      } : bundle.video);
       add(table.reference.file, table.reference.sha256!);
       if (table.reference.source_image)
         add(

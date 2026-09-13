@@ -252,8 +252,7 @@ def test_actual_ts_replay_is_run_again_without_display_commands_for_quality(
                 }
             ]
     labels = {
-        "schema_version": 2,
-        "policy": "automatic_v2",
+        "policy": "automatic",
         "provenance": "synthetic_fixture",
         "video_sha256": bundle["video"]["sha256"],
         "intervals": [
