@@ -1,4 +1,5 @@
 import { missingSetup } from "./setup-guidance";
+import { BrandLogo } from "./BrandLogo";
 import { useEffect, useRef, useState } from "react";
 import type { SourceInfo } from "../../shared/live-contracts";
 import { api, jsonBody } from "./api";
@@ -86,7 +87,7 @@ export function InputWorkspace({
       .catch((err) => {
         if (alive)
           setError(
-            `TableWatch service unavailable. ${err.message} Check the server connection, then reload to try again.`,
+            `TurnTable service unavailable. ${err.message} Check the server connection, then reload to try again.`,
           );
       });
     const refresh = () => {
@@ -394,9 +395,10 @@ export function InputWorkspace({
   return (
     <div className="input-workspace">
       <header className="input-topbar">
-        <strong>
-          TableWatch <span>Sources & setup</span>
-        </strong>
+        <div className="input-brand">
+          <BrandLogo />
+          <span>Sources & setup</span>
+        </div>
         <button
           className="button secondary"
           onClick={() => {
@@ -481,7 +483,7 @@ export function InputWorkspace({
                 <h2>Upload a recording</h2>
                 <p>
                   A fixed camera works best. Uploads are processed on the
-                  TableWatch server.
+                  TurnTable server.
                 </p>
                 <label className="setup-check">
                   <input
@@ -516,7 +518,7 @@ export function InputWorkspace({
                 <h2>Use a live camera</h2>
                 <p>
                   Start a preview, then capture a frame to calibrate the tables.
-                  Monitoring sends camera frames to the TableWatch server.
+                  Monitoring sends camera frames to the TurnTable server.
                 </p>
                 {devices.length > 0 && (
                   <label>
@@ -582,7 +584,7 @@ export function InputWorkspace({
                     <h2>{source?.label ?? "Uploading video"}</h2>
                     <p>
                       {uploadProgress !== null
-                        ? "Uploading video to the TableWatch server"
+                        ? "Uploading video to the TurnTable server"
                         : source?.phase.replaceAll("_", " ")}
                     </p>
                   </div>

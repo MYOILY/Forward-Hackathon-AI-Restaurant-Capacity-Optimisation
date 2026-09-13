@@ -1,11 +1,11 @@
 .original-scene-content > p {
   margin-top: 14px;
-  color: #66796c;
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.6;
 }
 .original-scene-content > p strong {
-  color: #365341;
+  color: var(--text);
 }
 .original-scene-actions {
   display: flex;
@@ -14,7 +14,7 @@
   margin-top: 18px;
 }
 .original-scene-content > .original-scene-help {
-  color: #78877d;
+  color: var(--text-secondary);
   font-size: 11px;
 }
 @media (max-width: 520px) {

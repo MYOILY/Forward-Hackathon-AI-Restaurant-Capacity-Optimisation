@@ -21,6 +21,8 @@ __pycache__/
 .ruff_cache/
 
 # Generated reports, browser artifacts and logs.
+/.turntable-work/
+/AGENTS.md
 /output/
 /test-results/
 /playwright-report/

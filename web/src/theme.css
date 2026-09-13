@@ -1,0 +1,24 @@
+@import "./assets/fonts/manrope.css";
+
+:root {
+  --font-ui: "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --brand-navy: #012c58;
+  --brand-teal: #018c87;
+  --action: #007b76;
+  --action-hover: #006762;
+  --action-soft: #eaf5f4;
+  --canvas: #f4f8fa;
+  --surface: #fff;
+  --surface-subtle: #f7fafb;
+  --text: #012c58;
+  --text-secondary: #405b6f;
+  --muted: #536878;
+  --border: #dce6ea;
+  --border-strong: #b7c9d2;
+  --focus: #007b76;
+  --overlay: rgba(1, 44, 88, 0.42);
+  --shadow-color: rgba(1, 44, 88, 0.08);
+  --selection-fill: #018c8733;
+  --selection-fill-strong: #018c8755;
+  --image-label: #012c58cc;
+}

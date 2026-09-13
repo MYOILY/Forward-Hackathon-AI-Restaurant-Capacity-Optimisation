@@ -20,15 +20,15 @@
 .floor-editor-toolbar span {
   flex: 1 1 180px;
   font-size: 13px;
-  color: #50645a;
+  color: var(--text-secondary);
 }
 .floor-editor button {
   padding: 8px 12px;
   min-height: 38px;
-  border: 1px solid #a7b8ae;
+  border: 1px solid var(--border-strong);
   border-radius: 6px;
-  background: white;
-  color: #244e39;
+  background: var(--surface);
+  color: var(--action);
 }
 .floor-editor button:disabled {
   opacity: 0.45;
@@ -37,8 +37,8 @@
   display: block;
   width: 100%;
   max-height: 68vh;
-  background: #edf2ee;
-  border: 1px solid #b4c6bc;
+  background: var(--canvas);
+  border: 1px solid var(--border-strong);
   border-radius: 8px;
   touch-action: none;
   overflow: visible;
@@ -47,13 +47,13 @@
   cursor: move;
 }
 .floor-editor :focus-visible {
-  outline: 3px solid #257f5c;
+  outline: 3px solid var(--focus);
   outline-offset: 3px;
 }
 .floor-editor-properties {
   padding: 16px;
-  background: #f4f7f4;
-  border: 1px solid #d3dfd6;
+  background: var(--surface-subtle);
+  border: 1px solid var(--border);
   border-radius: 8px;
 }
 .floor-editor-properties h3 {
@@ -64,14 +64,14 @@
   width: 100%;
   max-height: 150px;
   object-fit: contain;
-  background: #e4ebe6;
+  background: var(--surface-subtle);
   border-radius: 5px;
 }
 .floor-editor-properties p,
 .floor-editor-hint {
   font-size: 14px;
   line-height: 1.5;
-  color: #466051;
+  color: var(--text-secondary);
 }
 .floor-editor-properties label {
   display: flex;
@@ -85,10 +85,10 @@
 .floor-editor-properties select {
   width: 100%;
   min-height: 40px;
-  border: 1px solid #a5b8ab;
+  border: 1px solid var(--border-strong);
   border-radius: 5px;
   padding: 8px;
-  background: white;
+  background: var(--surface);
   box-sizing: border-box;
   font: inherit;
 }
@@ -104,7 +104,7 @@
 }
 .floor-editor-properties small {
   font-size: 12px;
-  color: #50645a;
+  color: var(--text-secondary);
 }
 @media (max-width: 850px) {
   .floor-editor {

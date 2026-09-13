@@ -6,7 +6,7 @@ import path from 'node:path';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const python = process.env.TABLEWATCH_PYTHON ?? path.join(root, '.venv/bin/python');
 if (!existsSync(python)) {
-  console.error('Create .venv and install requirements.lock.txt and .[service,test] before starting TableWatch.');
+  console.error('Create .venv and install requirements.lock.txt and .[service,test] before starting TurnTable.');
   process.exit(1);
 }
 const children = [

@@ -1,4 +1,5 @@
 import { ObjectEvidence } from "./ObjectEvidence";
+import { BrandLogo } from "./BrandLogo";
 import {
   REFERENCE_CLEANING_THRESHOLD,
   usesObjectSurface,
@@ -236,7 +237,7 @@ export default function App() {
           setError(
             err instanceof TypeError &&
               /fetch|network|load failed/i.test(err.message)
-              ? "Could not reach the TableWatch service. Check the connection and reload to try again."
+              ? "Could not reach the TurnTable service. Check the connection and reload to try again."
               : err instanceof Error
                 ? err.message
                 : String(err),
@@ -656,7 +657,7 @@ export default function App() {
     const url = URL.createObjectURL(blob),
       link = document.createElement("a");
     link.href = url;
-    link.download = "tablewatch-replay-events.json";
+    link.download = "turntable-replay-events.json";
     link.click();
     URL.revokeObjectURL(url);
   }
@@ -746,12 +747,9 @@ export default function App() {
           href="#"
           className="brand"
           onClick={(event) => event.preventDefault()}
-          aria-label="TableWatch home"
+          aria-label="TurnTable home"
         >
-          <span className="brand-mark">
-            <LayoutGrid size={19} strokeWidth={2.4} />
-          </span>
-          Table<span className="brand-light">Watch</span>
+          <BrandLogo />
         </a>
         <div className="topbar-right">
           <span className="local-badge">
@@ -761,7 +759,7 @@ export default function App() {
           <button
             className="icon-button"
             onClick={() => setInfoOpen(true)}
-            aria-label="How TableWatch works"
+            aria-label="How TurnTable works"
           >
             <CircleHelp size={19} />
           </button>
@@ -1645,7 +1643,7 @@ export default function App() {
               <h2 id="dialog-title">
                 {originalOpen
                   ? "Original restaurant scene"
-                  : "How TableWatch works"}
+                  : "How TurnTable works"}
               </h2>
               <button
                 className="icon-button"

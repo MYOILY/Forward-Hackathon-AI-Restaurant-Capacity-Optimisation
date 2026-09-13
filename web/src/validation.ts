@@ -213,7 +213,7 @@ export function validateAssessment(
 function validateSurfaceIdentity(value: Record<string, unknown>) {
   if (value.surface_method !== OBJECT_SURFACE_METHOD)
     fail(
-      "This recording uses retired surface evidence. Reprocess the original video with TableWatch.",
+      "This recording uses retired surface evidence. Reprocess the original video with TurnTable.",
     );
   if (
     value.timing_profile !== undefined &&
@@ -347,7 +347,7 @@ export function validateBundle(value: unknown): asserts value is Bundle {
     value.policy !== "automatic_v2"
   )
     fail(
-      "This recording uses an unsupported analysis format. Reprocess the original video with TableWatch to open it.",
+      "This recording uses an unsupported analysis format. Reprocess the original video with TurnTable to open it.",
     );
   if (
     !["real_video", "synthetic_fixture", "ai_generated_video"].includes(

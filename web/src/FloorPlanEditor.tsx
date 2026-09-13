@@ -259,7 +259,7 @@ export function FloorPlanEditor({
           onPointerCancel={finish}
           onLostPointerCapture={finish}
         >
-          <rect width={size.width} height={size.height} fill="#edf2ee" />
+          <rect width={size.width} height={size.height} fill="var(--canvas)" />
           {floorPlan && (
             <image
               data-testid="floor-plan-background"
@@ -296,8 +296,8 @@ export function FloorPlanEditor({
                     <ellipse
                       rx={w / 2}
                       ry={ht / 2}
-                      fill={active ? "#a7d9beaa" : "#ffffffb8"}
-                      stroke="#237353"
+                      fill={active ? "var(--selection-fill-strong)" : "#ffffffb8"}
+                      stroke="var(--action)"
                       strokeWidth={2 * scale}
                     />
                   ) : (
@@ -306,8 +306,8 @@ export function FloorPlanEditor({
                       y={-ht / 2}
                       width={w}
                       height={ht}
-                      fill={active ? "#a7d9beaa" : "#ffffffb8"}
-                      stroke="#237353"
+                      fill={active ? "var(--selection-fill-strong)" : "#ffffffb8"}
+                      stroke="var(--action)"
                       strokeWidth={2 * scale}
                     />
                   )}
@@ -321,7 +321,7 @@ export function FloorPlanEditor({
                         (w / Math.max(4, t.label.length)) * 1.5,
                       ),
                     )}
-                    fill="#173d2d"
+                    fill="var(--text)"
                     style={{ pointerEvents: "none" }}
                   >
                     {t.label}
@@ -335,14 +335,14 @@ export function FloorPlanEditor({
                       width={w}
                       height={ht}
                       fill="none"
-                      stroke="#145d40"
+                      stroke="var(--action)"
                       strokeWidth={scale}
                       strokeDasharray={`${4 * scale} ${3 * scale}`}
                       pointerEvents="none"
                     />
                     <path
                       d={`M 0 ${-ht / 2} V ${-ht / 2 - 30 * scale}`}
-                      stroke="#145d40"
+                      stroke="var(--action)"
                       strokeWidth={scale}
                     />
                     {(Object.keys(directions) as Handle[]).map((handle) => {
@@ -355,7 +355,7 @@ export function FloorPlanEditor({
                           cy={(sy * ht) / 2}
                           r={radius}
                           fill="white"
-                          stroke="#145d40"
+                          stroke="var(--action)"
                           strokeWidth={2 * scale}
                           style={{ cursor: `${handle}-resize` }}
                           onPointerDown={(e) => start(e, t.id, handle)}
@@ -369,7 +369,7 @@ export function FloorPlanEditor({
                       cx={0}
                       cy={-ht / 2 - 30 * scale}
                       r={radius + scale}
-                      fill="#145d40"
+                      fill="var(--action)"
                       stroke="white"
                       strokeWidth={2 * scale}
                       style={{ cursor: "grab" }}
@@ -384,7 +384,7 @@ export function FloorPlanEditor({
           })}
         </svg>
         <p className="floor-editor-hint">
-          Drag to move. Use the eight white handles to resize and the green
+          Drag to move. Use the eight white handles to resize and the teal
           handle to rotate. Arrow keys move 1 pixel; Shift + arrow moves 10.
         </p>
       </div>

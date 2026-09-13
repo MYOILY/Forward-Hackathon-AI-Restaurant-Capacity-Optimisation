@@ -81,7 +81,7 @@ def create_app(data_root=None, *, model_dir=None, dependencies=None, limits=None
         await live.close()
         await manager.close()
 
-    app = FastAPI(title="TableWatch CPU processing", lifespan=lifespan)
+    app = FastAPI(title="TurnTable CPU processing", lifespan=lifespan)
     app.add_middleware(RequestBodyLimit, limits=settings)
     app.state.manager, app.state.live_manager = manager, live
 

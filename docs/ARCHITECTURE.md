@@ -1,6 +1,6 @@
 # Architecture
 
-TableWatch has one CPU evidence pipeline and one shared decision core. Recorded
+TurnTable has one CPU evidence pipeline and one shared decision core. Recorded
 analysis, replay and live monitoring use that core with different clocks and
 transport adapters.
 

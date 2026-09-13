@@ -254,7 +254,7 @@ export function FloorMap({
             height="24"
             patternUnits="userSpaceOnUse"
           >
-            <circle cx="2" cy="2" r="1.2" fill="#dfe4e2" />
+            <circle cx="2" cy="2" r="1.2" fill="var(--border)" />
           </pattern>
         </defs>
         <rect
@@ -374,7 +374,7 @@ export function FloorMap({
                 x={x}
                 y={y + (tables.length > 7 ? 6 : -4)}
                 textAnchor="middle"
-                fill="#273d31"
+                fill="var(--text)"
                 fontSize={Math.min(
                   28,
                   (w / Math.max(3, Math.min(18, table.label.length))) * 1.4,

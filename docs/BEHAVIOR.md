@@ -1,6 +1,6 @@
 # Table status and evidence
 
-TableWatch keeps person occupancy and tabletop evidence separate, then derives a
+TurnTable keeps person occupancy and tabletop evidence separate, then derives a
 service colour. All automatic tables start **Grey · Verifying**. An approved
 reference photo alone does not make a table green.
 

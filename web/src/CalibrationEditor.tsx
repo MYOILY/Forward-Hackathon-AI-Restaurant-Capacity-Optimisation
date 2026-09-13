@@ -827,7 +827,7 @@ export function CalibrationEditor({
         { type: "application/json" },
       ),
     );
-    a.download = "tablewatch-draft.json";
+    a.download = "turntable-draft.json";
     a.click();
     URL.revokeObjectURL(a.href);
   }
@@ -915,7 +915,7 @@ export function CalibrationEditor({
                     type: "application/json",
                   }),
                 );
-                a.download = "tablewatch-recovered-draft.json";
+                a.download = "turntable-recovered-draft.json";
                 a.click();
                 URL.revokeObjectURL(a.href);
               }}
@@ -1406,7 +1406,7 @@ export function CalibrationEditor({
                             drag.current = null;
                           }}
                         >
-                          <rect width={width} height={height} fill="#eef2ee" />
+                          <rect width={width} height={height} fill="var(--canvas)" />
                           <image
                             data-testid="calibration-source-image"
                             href={
@@ -1441,13 +1441,13 @@ export function CalibrationEditor({
                                         .join(" ")}
                                       fill={
                                         t.id === selected
-                                          ? "#28895435"
+                                          ? "var(--selection-fill)"
                                           : "#ffffff12"
                                       }
                                       stroke={
                                         t.id === selected
-                                          ? "#24794c"
-                                          : "#e2e8e2"
+                                          ? "var(--action)"
+                                          : "var(--border)"
                                       }
                                       strokeWidth="3"
                                       strokeDasharray={
@@ -1466,7 +1466,7 @@ export function CalibrationEditor({
                                           cy={p[1] * height}
                                           r="10"
                                           fill="white"
-                                          stroke="#24794c"
+                                          stroke="var(--action)"
                                           strokeWidth="3"
                                           role="button"
                                           tabIndex={0}
@@ -1524,7 +1524,7 @@ export function CalibrationEditor({
                                   )
                                   .join(" ")}
                                 fill="none"
-                                stroke="#24794c"
+                                stroke="var(--action)"
                                 strokeWidth="4"
                               />
                               {drawing.map((p, i) => (
@@ -1534,7 +1534,7 @@ export function CalibrationEditor({
                                     cy={p[1] * height}
                                     r="10"
                                     fill="white"
-                                    stroke="#24794c"
+                                    stroke="var(--action)"
                                     strokeWidth="3"
                                   />
                                   <text
@@ -1542,7 +1542,7 @@ export function CalibrationEditor({
                                     y={p[1] * height - 12}
                                     fontSize="22"
                                     fill="white"
-                                    stroke="#184b31"
+                                    stroke="var(--brand-navy)"
                                     strokeWidth=".5"
                                   >
                                     {i + 1}

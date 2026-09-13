@@ -27,7 +27,7 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
         error?.detail ??
           error?.error ??
           error?.message ??
-          `TableWatch service returned ${response.status}.`,
+          `TurnTable service returned ${response.status}.`,
       ),
     );
   }
