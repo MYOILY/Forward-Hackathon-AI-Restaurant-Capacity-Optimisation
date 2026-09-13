@@ -1,0 +1,26 @@
+name: tablewatch-local
+
+services:
+  tablewatch:
+    build: .
+    image: tablewatch-cpu:local
+    platform: linux/amd64
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      TABLEWATCH_ALLOWED_ORIGINS: http://127.0.0.1:8000,http://localhost:8000
+    volumes:
+      - tablewatch-data:/data
+      - ${TABLEWATCH_MODEL_HOST_DIR:-./models}:/models:ro
+    deploy:
+      replicas: 1
+    init: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    restart: unless-stopped
+    stop_grace_period: 30s
+
+volumes:
+  tablewatch-data:

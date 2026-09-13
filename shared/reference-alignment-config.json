@@ -1,0 +1,10 @@
+{
+  "method": "translation_ecc_v1",
+  "max_translation_fraction": 0.025,
+  "min_correlation": 0.85,
+  "max_iterations": 200,
+  "epsilon": 0.000001,
+  "min_features": 12,
+  "min_feature_span_fraction": 0.4,
+  "min_feature_area_fraction": 0.1
+}

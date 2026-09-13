@@ -1,0 +1,24 @@
+{
+  "provenance": "synthetic_fixture",
+  "purpose": "Independent angled-corner marker test, no restaurant/model accuracy claim",
+  "tabletop_polygon": [
+    [
+      0.25,
+      0.1
+    ],
+    [
+      0.9,
+      0.3
+    ],
+    [
+      0.7,
+      0.9
+    ],
+    [
+      0.1,
+      0.7
+    ]
+  ],
+  "video_sha256": "9fd18f141b6b843b2f14f48a718ffb1fa5ad3e49a3a627f7736c1ba6a1ae7159",
+  "reference_sha256": "7dede1e8a034d0820923dc05ce2033d4c26e64a485d362f9cb8424519525896d"
+}

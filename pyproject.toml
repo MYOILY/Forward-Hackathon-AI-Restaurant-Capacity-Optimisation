@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tablewatch"
+version = "0.1.0"
+description = "CPU restaurant occupancy processing and independent evaluation"
+requires-python = ">=3.11"
+dependencies = ["numpy>=1.26,<3", "opencv-python>=4.8,<5", "onnxruntime>=1.17,<2", "psutil>=5.9,<8", "jsonschema>=4.20,<5", "pillow>=10,<13", "trackers==2.6.0", "supervision==0.30.2"]
+
+[project.optional-dependencies]
+test = ["pytest>=8,<10"]
+service = ["fastapi==0.141.1", "uvicorn==0.52.4", "python-multipart==0.0.32", "websockets==17.1", "httpx==0.28.1"]
+
+[tool.setuptools.packages.find]
+include = ["processor*", "evaluator*", "service*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests/python"]
+markers = ["integration: requires downloaded model and genuine image/video evidence", "surface_integration: requires actual CPU object detector and labelled surface images"]

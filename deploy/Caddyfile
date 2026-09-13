@@ -1,0 +1,15 @@
+{$DOMAIN} {
+    basic_auth {
+        {$BASIC_AUTH_USER} {$BASIC_AUTH_HASH}
+    }
+
+    header {
+        X-Content-Type-Options nosniff
+        Referrer-Policy same-origin
+    }
+
+    reverse_proxy tablewatch:8000 {
+        # Authentication ends at the proxy. Never forward the shared password.
+        header_up -Authorization
+    }
+}

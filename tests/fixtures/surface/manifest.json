@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "provenance": "ai_generated_video",
+  "annotation_method": "The independent assistant subagent visually reviewed the rectified source frames, without model output. Annotations have not been human-verified. These AI-generated image pairs test local model execution and do not certify real restaurant accuracy.",
+  "source_video_sha256": "cd04fb49fe68e965c8e325c60abaa2c6ee2a63e99f233592e5cf4c1938640ed8",
+  "source_video_file": "Create_an_exactly_second_pho.mp4",
+  "table_id": "T1",
+  "geometry_sha256": "648f0e8b0c388a80f5a84142982b6045996999ca094d9fa81fa1d46403f8a305",
+  "reference_file": "ai-t1-reference.png",
+  "reference_sha256": "ac39f33486440e2a959814988ccfff2dab1ec37823c915d8fc9709d0c54de4dd",
+  "cases": [
+    {
+      "id": "ai-reset",
+      "current_file": "ai-t1-reference.png",
+      "source_t": 0,
+      "frame_index": 0,
+      "expected": "cleared_reset",
+      "sha256": "ac39f33486440e2a959814988ccfff2dab1ec37823c915d8fc9709d0c54de4dd",
+      "reason": "Empty tabletop with permanent condiment and napkin container; no used dishes visible."
+    },
+    {
+      "id": "ai-used",
+      "current_file": "ai-t1-used.png",
+      "source_t": 3,
+      "frame_index": 72,
+      "expected": "not_reset",
+      "sha256": "e6580c190c51121705ab9e2a4555588a80a3aaf6d009a82023267fd4d825b6d5",
+      "reason": "Used plates with food remnants, cups and napkins remain on the tabletop."
+    }
+  ]
+}

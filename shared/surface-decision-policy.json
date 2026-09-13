@@ -1,0 +1,17 @@
+{
+  "version": "reference_difference_v3",
+  "cleaning_changed_fraction": 0.1,
+  "weak_extra_policy": "reference_difference",
+  "background_guess_min_box_fraction": 0.8,
+  "stability": {
+    "early_dirty_vacancy_s": 1,
+    "unobstructed_s": 1,
+    "recheck_s": 2,
+    "dirty_retry_s": 2,
+    "uncertain_retry_s": 1,
+    "clean_confirmation_s": 5,
+    "clean_confirmation_captures": 3,
+    "object_confirmation_s": 1,
+    "alignment_mode_confirmation_s": 1
+  }
+}

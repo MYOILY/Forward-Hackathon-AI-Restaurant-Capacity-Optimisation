@@ -1,0 +1,14 @@
+[
+  {
+    "file": "bus.jpg",
+    "source": "https://raw.githubusercontent.com/ultralytics/assets/main/im/bus.jpg",
+    "sha256": "c02019c4979c191eb739ddd944445ef408dad5679acab6fd520ef9d434bfbc63",
+    "bytes": 137419
+  },
+  {
+    "file": "dog.jpg",
+    "source": "https://raw.githubusercontent.com/Megvii-BaseDetection/YOLOX/main/assets/dog.jpg",
+    "sha256": "5a9522051c3cec2bbd2f6323fccba32e8fbf3ddcc2b3e2fd46b04c720bc6f866",
+    "bytes": 163759
+  }
+]

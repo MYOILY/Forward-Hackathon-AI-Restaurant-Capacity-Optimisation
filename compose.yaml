@@ -1,0 +1,53 @@
+name: tablewatch
+
+services:
+  tablewatch:
+    build: .
+    image: tablewatch-cpu:local
+    platform: linux/amd64
+    environment:
+      TABLEWATCH_PUBLIC_DEPLOYMENT: "true"
+      DOMAIN: ${DOMAIN:?Set DOMAIN in .env}
+      BASIC_AUTH_USER: ${BASIC_AUTH_USER:?Set BASIC_AUTH_USER in .env}
+      BASIC_AUTH_HASH: ${BASIC_AUTH_HASH:?Set BASIC_AUTH_HASH in .env}
+      TABLEWATCH_ALLOWED_ORIGINS: https://${DOMAIN:?Set DOMAIN in .env}
+    volumes:
+      - tablewatch-data:/data
+      - ${TABLEWATCH_MODEL_HOST_DIR:-./models}:/models:ro
+    deploy:
+      replicas: 1
+    init: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    restart: unless-stopped
+    stop_grace_period: 30s
+
+  caddy:
+    image: caddy:2.10.2-alpine
+    platform: linux/amd64
+    depends_on:
+      tablewatch:
+        condition: service_healthy
+    environment:
+      DOMAIN: ${DOMAIN:?Set DOMAIN in .env}
+      BASIC_AUTH_USER: ${BASIC_AUTH_USER:?Set BASIC_AUTH_USER in .env}
+      BASIC_AUTH_HASH: ${BASIC_AUTH_HASH:?Set BASIC_AUTH_HASH in .env}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    stop_grace_period: 15s
+
+volumes:
+  tablewatch-data:
+  caddy-data:
+  caddy-config:

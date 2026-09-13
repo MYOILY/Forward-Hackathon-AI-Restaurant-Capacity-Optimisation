@@ -1,0 +1,53 @@
+# Local environment and credentials (keep shareable configuration examples).
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Node dependencies and frontend builds.
+node_modules/
+/dist/
+/build/
+*.tsbuildinfo
+
+# Python environments, bytecode, caches and package metadata.
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Generated reports, browser artifacts and logs.
+/output/
+/test-results/
+/playwright-report/
+/blob-report/
+.playwright-cli/
+/coverage/
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.log
+
+# Saved uploads, analysis data and downloaded model artifacts.
+/data/
+/models/*
+!/models/.gitkeep
+!/models/README.md
+
+# User example inputs; retain empty folders and any usage instructions.
+# Test fixture media under tests/ remains versionable.
+/examples/videos/*
+!/examples/videos/.gitkeep
+!/examples/videos/README.md
+/examples/mappings/*
+!/examples/mappings/.gitkeep
+!/examples/mappings/README.md
+
+# macOS metadata.
+.DS_Store
+._*
