@@ -1,5 +1,8 @@
 # TurnTable
 
+**[Try it live here](https://d3t6xslmmc2oy2.cloudfront.net/)** — Explore the hosted
+recording demo in desktop Chrome or Edge. No local installation needed.
+
 TurnTable turns a fixed-camera restaurant recording or browser camera into a
 reviewed table map. CPU person tracking and reference-image comparison help staff
 see which tables are occupied, need a reset, or have enough evidence to be ready.
