@@ -43,9 +43,6 @@ coverage.xml
 
 # User example inputs; retain empty folders and any usage instructions.
 # Test fixture media under tests/ remains versionable.
-/examples/videos/*
-!/examples/videos/.gitkeep
-!/examples/videos/README.md
 /examples/mappings/*
 !/examples/mappings/.gitkeep
 !/examples/mappings/README.md

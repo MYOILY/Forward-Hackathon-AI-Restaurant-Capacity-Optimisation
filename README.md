@@ -7,7 +7,7 @@
 **[Try it live here](https://d3t6xslmmc2oy2.cloudfront.net/) — no installation needed.**
 Open the recording demo in desktop Chrome or Edge.
 
-[Get the sample recording and clean reference](examples/demo/) · [Follow the screen-by-screen guide](docs/USAGE.md)
+[Get the sample recordings and clean references](examples/demo/) · [Follow the screen-by-screen guide](docs/USAGE.md)
 
 ---
 
@@ -33,7 +33,7 @@ image for this first run.
 Already have the app open? Use the [screen-by-screen usage guide](docs/USAGE.md)
 to learn what each section and control does.
 
-The repository includes a [demo recording and clean reference](examples/demo/).
+The repository includes [two demo recordings, each with its own clean reference](examples/demo/).
 It contains no pre-approved table setup or independent restaurant labels. Model
 weights are downloaded separately during installation. Your files are only loaded
 when you select them in the application.

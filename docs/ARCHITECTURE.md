@@ -142,9 +142,9 @@ ETag checks. Verification can still require substantial browser memory for large
 recordings. The upload ceiling is not a capacity guarantee.
 
 Examples, test fixtures and runtime data have separate purposes. The bundled
-[demo recording and clean reference](../examples/demo/) are optional user inputs;
-tests do not depend on them. Only `examples/videos/` and `examples/mappings/`
-start empty, for your own inputs. Models are downloaded and
+[demo recordings and clean references](../examples/demo/) are optional user inputs;
+tests do not depend on them. `examples/mappings/` starts empty, for your own
+plans. You can select recordings from any local folder. Models are downloaded and
 verified separately. The [deployment guide](DEPLOYMENT.md) explains their mounts
 and the [validation guide](VALIDATION.md) separates software evidence from real
 restaurant performance.

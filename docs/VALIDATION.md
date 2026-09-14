@@ -1,8 +1,8 @@
 # Validate the application
 
 Tests use controlled inputs under [tests/fixtures](../tests/fixtures/), separate
-from the bundled [demo](../examples/demo/) and the initially empty user-input
-folders `examples/videos/` and `examples/mappings/`. A passing simulated test is software
+from the bundled [demo](../examples/demo/) and user-supplied recordings.
+A passing simulated test is software
 evidence, not proof of physical-camera throughput or restaurant accuracy.
 
 For the stateless recording deployment, add
@@ -271,7 +271,7 @@ settings, deployed load tests and longest-recording acceptance remain unverified
 
 ## Further example material required
 
-This repository ships one unlabelled [demo clip](../examples/demo/) and no
+This repository ships two unlabelled [demo clips](../examples/demo/) and no
 venue mappings or real-recording labels. The documentation's synthetic label
 example only illustrates file structure. Every result above rests on synthetic fixtures and
 self-recorded material. Those establish that
@@ -280,13 +280,13 @@ example material is still required before any accuracy claim is made:
 
 | Needed | Why it is missing today |
 | --- | --- |
-| Held-out fixed-camera recordings from more than one venue | Both local clips came from the same camera position and lighting |
+| Held-out fixed-camera recordings from more than one venue | The bundled study-space demos are not a held-out, multi-venue restaurant dataset |
 | A clean reference frame per venue and per camera move | Reference comparison is only as good as its approved baseline |
 | Floor plans matching each recording | Map positions are currently checked against schematic plans |
 | Independent occupancy and reset labels with timestamps | `evaluator` can score against labels, but no labelled set exists |
 | Adversarial clips: occlusion, crowding, off-camera clearing, low light, reflective tabletops | Failure modes are described in [Behavior](BEHAVIOR.md) but not measured |
 
 Until a labelled, held-out set exists, treat reported timings as execution
-evidence only. Place any material you collect in `examples/videos` and
-`examples/mappings`; both stay untracked, and `scripts/check_repository.py`
-requires them to hold only `.gitkeep` for a clean submission.
+evidence only. Select recordings from any local folder. `examples/mappings`
+remains an optional folder for your own plans; its contents stay untracked, and
+`scripts/check_repository.py` requires it to hold only `.gitkeep` for a clean submission.

@@ -15,16 +15,19 @@ terminal running while you work.
 
 ## Try the demo
 
-You need the verified Tiny model from the README and these two included files:
+You need the verified Tiny model from the README and one of these included
+recording/reference pairs:
 
-| File | Select it when asked for |
-| --- | --- |
-| [scene.mp4](../examples/demo/scene.mp4) | The recording to analyze |
-| [clean-frame.jpg](../examples/demo/clean-frame.jpg) | A clean reference photo from the same camera |
+| Scene | Recording to analyze | Clean reference photo |
+| --- | --- | --- |
+| Scene One | [scene.mp4](../examples/demo/scene.mp4) | [clean-frame.jpg](../examples/demo/clean-frame.jpg) |
+| Scene Two | [scene-two.mp4](../examples/demo/scene-two.mp4) | [scene-two-clean-frame.jpg](../examples/demo/scene-two-clean-frame.jpg) |
 
-The recording is about 80 seconds long and shows a shared study space with six
-tables. It demonstrates the application flow; it has no independent accuracy
-labels. There is no floor-plan image to find: choose a schematic in step 3.
+The steps and screenshots below use Scene One, an approximately 80-second
+recording of a shared study space with six tables. Scene Two is a 63-second
+recording of booth seating and a freestanding table; use its matching clean
+reference. Both demonstrate the application flow and have no independent
+accuracy labels. There is no floor-plan image to find: choose a schematic in step 3.
 
 ### 1. Choose the recording
 
@@ -33,6 +36,8 @@ detection**, click **Choose video**, and select `examples/demo/scene.mp4` from
 your downloaded repository. This gives you an empty table list to work through
 one table at a time. It skips automatic table proposals; object proposals and
 analysis later still need the model.
+
+For Scene Two, select `examples/demo/scene-two.mp4` instead.
 
 Wait for upload and video preparation to finish. The reference/floor-plan editor
 opens next. If it does not, see [When you cannot continue](#when-you-cannot-continue).
@@ -44,6 +49,8 @@ opens next. If it does not, see [When you cannot continue](#when-you-cannot-cont
 Choose **Upload a clean photo**, then **Choose clean photo**, and select
 `examples/demo/clean-frame.jpg`. Inspect the photo and confirm **This photo uses
 the same camera position and framing as the recording or live camera.**
+
+For Scene Two, select `examples/demo/scene-two-clean-frame.jpg` instead.
 
 A *clean reference* is the view the application compares against later. It
 should show each table as you expect it after a reset. Uploading it does not
@@ -128,10 +135,9 @@ saved-source reopening in this mode.
 ## Prepare your files
 
 For your own material, select files from any folder on the computer running the
-browser. The optional [examples/videos](../examples/videos/) and
-[examples/mappings](../examples/mappings/) folders are placeholders for your
-recordings and plans. These two folders start empty; the bundled demo lives
-separately in `examples/demo/`. Files in any of these folders are not automatically loaded.
+browser. The optional [examples/mappings](../examples/mappings/) folder is an
+empty placeholder for your own plans. The bundled demos live in `examples/demo/`.
+Files are only loaded when you select them in the application.
 A floor-plan image describes table positions; it is not a clean-table reference.
 
 Use a fixed camera with visible tabletops and people zones. A clean photo should
@@ -223,7 +229,7 @@ See [Behavior](BEHAVIOR.md) for what each status means and
 | The next setup button is disabled | Read the message beside it. Finish the current requirement: reference selection/alignment, schematic or plan, four corners, or a table review. **Save draft** alone does not approve a step. |
 | **Propose expected objects** is disabled | Confirm the table corners, people zone and floor-plan position first. Ensure a clean reference is selected. |
 | No model is available | Return to the README's model-download step and restart. Manual drawing lets you prepare geometry; it does not remove the model requirement for object proposals or analysis. |
-| A clean photo is rejected | Use a JPG/PNG from the same framing and aspect ratio, at most 12 MiB and 16 megapixels. The included demo reference matches the included clip. |
+| A clean photo is rejected | Use a JPG/PNG from the same framing and aspect ratio, at most 12 MiB and 16 megapixels. Use the clean reference supplied with the selected demo recording. |
 | Saving fails or a revision conflict appears | Keep the editor open. Use **Retry save** for a failed request. For a conflict, use **Download my edits** before reopening the latest saved source and reapplying your changes. |
 | Tables remain grey | Inspect the selected table's evidence and [status rules](BEHAVIOR.md). Missing approvals, people obstructing the view, uncertain measurements, or insufficient confirmation can all prevent readiness. |
 | A stateless session disappeared after a refresh | Select the local recording and set it up again. That mode intentionally keeps no saved session on the server. |

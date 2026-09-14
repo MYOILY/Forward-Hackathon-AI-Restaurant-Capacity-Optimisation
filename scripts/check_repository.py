@@ -10,7 +10,13 @@ from urllib.parse import unquote, urlsplit
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE_DIRS = ("processor", "service", "evaluator", "shared", "web", "tests", "scripts")
-DEMO_FILES = {"README.md", "scene.mp4", "clean-frame.jpg"}
+DEMO_FILES = {
+    "README.md",
+    "scene.mp4",
+    "clean-frame.jpg",
+    "scene-two.mp4",
+    "scene-two-clean-frame.jpg",
+}
 DEMO_FILE_LIMIT = 25 * 1024 * 1024
 
 
@@ -72,14 +78,13 @@ def check_repository(root: Path = ROOT) -> list[str]:
                 errors.append(
                     f"Legacy implementation reference in {path.relative_to(root)}"
                 )
-    for name in ("videos", "mappings"):
-        folder = root / "examples" / name
-        if not folder.is_dir() or {path.name for path in folder.iterdir()} != {
-            ".gitkeep"
-        }:
-            errors.append(
-                f"examples/{name} must contain only .gitkeep for a clean submission"
-            )
+    mappings = root / "examples" / "mappings"
+    if not mappings.is_dir() or {path.name for path in mappings.iterdir()} != {
+        ".gitkeep"
+    }:
+        errors.append(
+            "examples/mappings must contain only .gitkeep for a clean submission"
+        )
     demo = root / "examples" / "demo"
     if not demo.is_dir() or {path.name for path in demo.iterdir()} != DEMO_FILES:
         errors.append(
@@ -107,5 +112,5 @@ if __name__ == "__main__":
         raise SystemExit(1)
     print(
         "Current documentation links, source boundaries, demo assets and empty "
-        "examples verified."
+        "mapping placeholder verified."
     )
