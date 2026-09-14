@@ -220,3 +220,18 @@ establish restaurant accuracy; that requires independent labels and a separate
 held-out real recording. [Further example material
 required](docs/VALIDATION.md#further-example-material-required) lists what that
 set must contain.
+
+---
+## AI Assistance & Attributions Acknowledgement
+
+In the development of this project, Claude was utilized as an accelerator and development companion in the following areas:
+
+* **General Coding & Refactoring:** 
+  * Providing boilerplate code structures, syntax suggestions, and debugging support across the codebase.
+  * Accelerating routine programming tasks and logic sanity checks.
+* **DevOps & Deployment Configuration:**
+  * Assisting with containerization and reverse-proxy setup.
+  * Helping debug environment variable configurations, SSL/TLS setup, and deployment orchestration.
+  * Resolving git issues.
+
+> **Note:** All architectural decisions, core capacity optimization logic, data pipelines, and final integration checks were designed, implemented, verified, and maintained by the project team.
