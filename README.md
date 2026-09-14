@@ -234,4 +234,4 @@ In the development of this project, Claude was utilized as an accelerator and de
   * Helping debug environment variable configurations, SSL/TLS setup, and deployment orchestration.
   * Resolving git issues.
 
-> **Note:** All architectural decisions, core capacity optimization logic, data pipelines, and final integration checks were designed, implemented, verified, and maintained by the project team.
+**Note:** All architectural decisions, core capacity optimization logic, data pipelines, and final integration checks were designed, implemented, verified, and maintained by the project team.
