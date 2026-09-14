@@ -1,7 +1,15 @@
 # TurnTable
 
-**[Try it live here](https://d3t6xslmmc2oy2.cloudfront.net/)** — Explore the hosted
-recording demo in desktop Chrome or Edge. No local installation needed.
+## Try the live demo
+
+[![Try the live demo](docs/images/try-live-demo.svg)](https://d3t6xslmmc2oy2.cloudfront.net/)
+
+**[Try it live here](https://d3t6xslmmc2oy2.cloudfront.net/) — no installation needed.**
+Open the recording demo in desktop Chrome or Edge.
+
+[Get the sample recording and clean reference](examples/demo/) · [Follow the screen-by-screen guide](docs/USAGE.md)
+
+---
 
 TurnTable turns a fixed-camera restaurant recording or browser camera into a
 reviewed table map. CPU person tracking and reference-image comparison help staff
@@ -17,7 +25,7 @@ camera session running. The Lambda recording demo lets customers try the
 workflow. Read [why the subscription needs continuous inference](docs/ARCHITECTURE.md#why-the-subscription-needs-near-real-time-inference)
 for the customer need, architecture choice and current prototype limits.
 
-**New here? Start locally below, then follow the [demo walkthrough](docs/SETUP.md#try-the-demo).**
+**Prefer a local setup? [Start locally](#start-locally), then follow the [demo walkthrough](docs/SETUP.md#try-the-demo).**
 You will upload the included recording, mark a table, and open its analyzed video
 with a table map and evidence. You do not need AWS, Docker, a camera or a floor-plan
 image for this first run.

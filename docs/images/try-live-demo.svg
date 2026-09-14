@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="64" viewBox="0 0 320 64" role="img" aria-labelledby="title desc">
+  <title id="title">Try the live demo</title>
+  <desc id="desc">Open the TurnTable recording demo in your browser. No installation needed.</desc>
+  <rect width="320" height="64" rx="12" fill="#007f7b"/>
+  <path d="M26 22L42 32L26 42Z" fill="#fff"/>
+  <text x="59" y="39" fill="#fff" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="700">TRY THE LIVE DEMO</text>
+  <path d="M278 32H296M289 25L296 32L289 39" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
